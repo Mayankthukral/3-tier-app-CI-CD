@@ -31,4 +31,11 @@ jobs:
       run: |
         cd To_do-list/task-manager-backend # Change this to the path of your frontend
         ls | cat simplefile.txt
-        npm install               
+        npm install          
+             
+    - name: Run backend unit  Tests
+      run: |
+          
+          cd task-manager-backend  # Change this to the path of your frontend
+          echo "MONGODB_URL=${{ secrets.MONGODB_URL }}" > .env 
+          npm test
