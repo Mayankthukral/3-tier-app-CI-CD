@@ -23,19 +23,19 @@ jobs:
 
     - name: Install frontend Dependencies
       run: |
-        cd 3-tier-app-CI-CD/task-manager-frontend  # Change this to the path of your frontend
+        cd task-manager-frontend  
         ls | cat simplefile.txt
         npm install
 
     - name: Install backend Dependencies 
       run: |
-        cd 3-tier-app-CI-CD/task-manager-backend # Change this to the path of your frontend
+        cd task-manager-backend 
         ls | cat simplefile.txt
         npm install          
 
     - name: Run backend unit  Tests
       run: |
           
-          cd task-manager-backend  # Change this to the path of your frontend
+          cd task-manager-backend  
           echo "MONGODB_URL=${{ secrets.MONGODB_URL }}" > .env 
           npm test
