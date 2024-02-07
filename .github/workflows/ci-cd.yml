@@ -18,4 +18,17 @@ jobs:
     - name: Setup Node.js environment
       uses: actions/setup-node@v4.0.2
 
-                    
+      with:
+        node-version: '20'
+
+    - name: Install frontend Dependencies
+      run: |
+        cd To_do-list/task-manager-frontend  # Change this to the path of your frontend
+        ls | cat simplefile.txt
+        npm install
+
+    - name: Install backend Dependencies 
+      run: |
+        cd To_do-list/task-manager-backend # Change this to the path of your frontend
+        ls | cat simplefile.txt
+        npm install               
