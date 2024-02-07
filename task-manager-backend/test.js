@@ -33,9 +33,13 @@ describe('Tasks API', () => {
   // Add similar modifications for the other test cases (PUT, DELETE)...
 
   after((done) => {
-    mongoose.connection.close(() => {
-      done();
-    });
+    if (passed) {
+      mongoose.connection.close(() => {
+        done();
+      });
+    } else {
+      console.log('Tests failed, keeping connection open.');
+    }
   });
 });
 
