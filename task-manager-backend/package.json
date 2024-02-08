@@ -2,7 +2,7 @@
   "type": "commonjs",
   "scripts": {
     "start": "node index.js",
-    "test": "mocha test.js --timeout 10000 -r esm"
+    "test": "mocha test.js -r esm  --exit"
   },
   "dependencies": {
     "chai-http": "^4.4.0",

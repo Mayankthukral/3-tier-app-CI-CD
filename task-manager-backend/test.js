@@ -2,6 +2,7 @@ const chai = require('chai');
 const chaiHttp = require('chai-http');
 const app = require('./index'); // Update this path accordingly
 const mongoose = require('mongoose');
+const { exec } = require('child_process');
 
 chai.use(chaiHttp);
 
@@ -33,9 +34,19 @@ describe('Tasks API', () => {
   // Add similar modifications for the other test cases (PUT, DELETE)...
 
   after((done) => {
-    mongoose.connection.close(() => {
-      done();
-    });
+    if (mongoose.connection.readyState === 1) { // Check if connection is established
+      mongoose.connection.close(() => {
+        console.log('MongoDB connection closed.');
+        done();
+      });
+    } else {
+      console.log('MongoDB connection not established.');
+      done(); // Call done() to signal that the tests are complete
+    }
+  });
+
+  // Automatically exit after all tests pass
+  after(() => {
+    exec('kill $(pgrep -f "node test.js")'); // Kill the test process after all tests pass
   });
 });
-
