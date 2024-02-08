@@ -39,3 +39,9 @@ jobs:
           cd task-manager-backend  
           echo "MONGODB_URL=${{ secrets.MONGODB_URL }}" > .env 
           npm test
+
+    - name: Setup Maven
+      uses: actions/setup-java@v2
+      with:
+          distribution: 'adopt'
+          java-version: '11'
