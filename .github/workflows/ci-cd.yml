@@ -39,13 +39,13 @@ jobs:
       - name: Analyze code with SonarCloud (Backend)
         uses: sonarsource/sonarqube-scan-action@master 
         env:
-          GITHUB_TOKEN: ${{ secrets.SONAR_GITHUBTOKEN }}
+          GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUBTOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         
       - name: Analyze code with SonarCloud (Frontend)
         uses: sonarsource/sonarqube-scan-action@master
         env:
-          GITHUB_TOKEN: ${{ secrets.SONAR_GITHUBTOKEN }}
+          GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUBTOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
 
