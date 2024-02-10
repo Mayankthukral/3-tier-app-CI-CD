@@ -35,18 +35,15 @@ jobs:
             cd task-manager-backend  
             echo "MONGODB_URL=${{ secrets.MONGODB_URL }}" > .env 
             npm test
-  
-  
-      
-      - name: Create SonarCloud configuration file
-        run: |
-          echo "sonar.projectKey=${{ secrets.SONARPROJECT}} > sonar-project.properties
-          echo "sonar.organization=${{ secrets.SONARORGANIZATION}} >> sonar-project.properties
-          echo "sonar.sources=task-manager-backend,task-manager-frontend" >> sonar-project.properties
             
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUBTOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: 
+            -Dsonar.organization=${{ secrets.SONARORGANIZATION}}
+            -Dsonar.projectKey=${{ secrets.SONARPROJECT}}
+            -Dsonar.sources=task-manager-backend,task-manager-frontend 
 
