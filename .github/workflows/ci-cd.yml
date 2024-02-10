@@ -30,22 +30,24 @@ jobs:
           ls | cat simplefile.txt
           npm install          
 
-      - name: Run backend unit Tests
-        run: |
-          cd task-manager-backend  
-          echo "MONGODB_URL=${{ secrets.MONGODB_URL }}" > .env 
-          npm test
-
       - name: Analyze code with SonarCloud (Backend)
-        uses: sonarsource/sonarqube-scan-action@master 
+        uses: sonarsource/sonarcloud-github-action@v1
+        with:
+            organization: "${{ secrets.SONARORGANIZATION }}" 
+            projectKey: "${{ secrets.SONARPROJECT }}"     
+            projectBaseDir: "task-manager-backend"  
         env:
-          GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUBTOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          
       - name: Analyze code with SonarCloud (Frontend)
-        uses: sonarsource/sonarqube-scan-action@master
+        uses: sonarsource/sonarcloud-github-action@v1
+        with:
+            organization: "${{ secrets.SONARORGANIZATION }}" 
+            projectKey: "${{ secrets.SONARPROJECT }}"      
+            projectBaseDir: "task-manager-frontend"  
         env:
-          GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUBTOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
 
