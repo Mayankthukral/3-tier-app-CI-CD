@@ -59,16 +59,17 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       
+      
       - name: Build and push frontend image
         uses: docker/build-push-action@v5
         with:
-          context: Dockerfile_frontend
+          context: ./task-manager-frontend
           push: true
           tags: mayank7833/frontend:latest
 
       - name: Build and push backend image
         uses: docker/build-push-action@v5
         with:
-          context: Dockerfile_backend
+          context: ./task-manager-backend
           push: true
           tags: mayank7833/backend:latest
