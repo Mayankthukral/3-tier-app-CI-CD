@@ -1,4 +1,4 @@
-# Use the official Node.js image with Alpine as a base image
+
 FROM node:14-alpine
 
 # Set the working directory in the container
@@ -15,6 +15,5 @@ COPY task-manager-frontend/ .
 
 # Expose the port your app will run on
 EXPOSE 3000
-
 # Command to run your application
 CMD ["npm", "start"]
