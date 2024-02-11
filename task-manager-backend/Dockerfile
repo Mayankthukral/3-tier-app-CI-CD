@@ -12,10 +12,6 @@ RUN npm install
 # Copy the rest of the application code from the backend folder
 COPY  . .
 
-
-# Copy the rest of the application code from the backend folder
-COPY . .
-
 # Expose the port your app will run on
 EXPOSE 5000
 
