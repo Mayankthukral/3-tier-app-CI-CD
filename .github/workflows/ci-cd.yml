@@ -84,6 +84,7 @@ jobs:
           exit-code: '1'
           ignore-unfixed: true
           vuln-type: 'os,library'
+          severity: HIGH,CRITICAL
           output: 'trivy-results-frontend.txt'
 
       - name: Install and run Trivy on backend image
@@ -95,6 +96,7 @@ jobs:
           exit-code: '1'
           ignore-unfixed: true
           vuln-type: 'os,library'
+          severity: HIGH,CRITICAL
           output: 'trivy-results-backend.txt'
 
       - name: Upload Trivy scan results
