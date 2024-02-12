@@ -78,31 +78,24 @@ jobs:
       - name: Install and run Trivy
         uses: aquasecurity/trivy-action@master
         with:
-          scan-type: 'image'
           image-ref: 'mayank7833/frontend:latest'
-          format: 'table'
-          exit-code: '1'
-          ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: HIGH,CRITICAL
-          output: 'trivy-results-frontend.txt'
+          format: 'sarif'
+          output: 'trivy-results-frontend.sarif'
+      
+      - name: Upload Trivy scan results for frontend to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:  
+            sarif_file: 'trivy-results-frontend.sarif'
 
       - name: Install and run Trivy on backend image
         uses: aquasecurity/trivy-action@master
         with:
-          scan-type: 'image'
           image-ref: 'mayank7833/backend:latest'
-          format: 'table'
-          exit-code: '1'
-          ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: HIGH,CRITICAL
-          output: 'trivy-results-backend.txt'
+          format: 'sarif'
+          output: 'trivy-results-backend.sarif'
 
-      - name: Upload Trivy scan results
-        uses: actions/upload-artifact@v2
-        with:
-          name: trivy-results
-          path: |
-            trivy-results-frontend.txt
-            trivy-results-backend.txt
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:  
+          sarif_file: 'trivy-results-backend.sarif'
+          
