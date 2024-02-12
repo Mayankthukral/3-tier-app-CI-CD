@@ -73,3 +73,34 @@ jobs:
           context: ./task-manager-backend
           push: true
           tags: mayank7833/backend:latest
+
+
+      - name: Install and run Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'image'
+          image-ref: 'mayank7833/frontend:latest'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          output: 'trivy-results-frontend.txt'
+
+      - name: Install and run Trivy on backend image
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'image'
+          image-ref: 'mayank7833/backend:latest'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          output: 'trivy-results-backend.txt'
+
+      - name: Upload Trivy scan results
+        uses: actions/upload-artifact@v2
+        with:
+          name: trivy-results
+          path: |
+            trivy-results-frontend.txt
+            trivy-results-backend.txt
