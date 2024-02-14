@@ -28,8 +28,14 @@ jobs:
         run: |
           cd task-manager-backend 
           ls | cat simplefile.txt
-          npm install          
-
+          npm install   
+          
+      - name: Run frontend unit Tests
+        run: |
+            cd task-manager-frontend 
+              echo "MONGODB_URL=${{ secrets.MONGODB_URL }}" > .env 
+              npm test   
+      
       - name: Run backend unit Tests
         run: |
             cd task-manager-backend  
@@ -75,7 +81,6 @@ jobs:
           tags: mayank7833/backend:latest
 
 
-
       - name: Install and run Trivy on frontend image
         uses: aquasecurity/trivy-action@master
         with:
@@ -91,4 +96,5 @@ jobs:
           sarif_file: |
              trivy-results-frontend.sarif
              
+          
           
