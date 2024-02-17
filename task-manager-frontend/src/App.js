@@ -9,9 +9,11 @@ function App() {
   const [editedTitle, setEditedTitle] = useState('');
   const [editedDescription, setEditedDescription] = useState('');
 
+  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+
   useEffect(() => {
     // Fetch tasks from the backend when the component mounts
-    axios.get('http://localhost:5000/tasks')
+    axios.get(`${BACKEND_URL}/tasks`)
       .then(response => setTasks(response.data))
       .catch(error => console.error('Error fetching tasks:', error));
   }, []); // Empty dependency array ensures the effect runs only once
@@ -40,15 +42,13 @@ function App() {
       return;
     }
   
-    axios.post('http://localhost:5000/tasks', newTask)
+    axios.post(`${BACKEND_URL}/tasks`, newTask)
       .then(response => {
         setTasks(prevTasks => [...prevTasks, response.data]);
         setNewTask({ title: '', description: '' });
       })
       .catch(error => console.error('Error adding task:', error));
   };
-  
-  
 
   const handleEditClick = (task) => {
     setEditingTask(task);
@@ -57,7 +57,7 @@ function App() {
   };
 
   const handleSaveEdit = (task) => {
-    axios.put(`http://localhost:5000/tasks/${task._id}`, {
+    axios.put(`${BACKEND_URL}/tasks/${task._id}`, {
       title: editedTitle,
       description: editedDescription,
     })
@@ -73,7 +73,7 @@ function App() {
   };
 
   const handleDeleteTask = (taskId) => {
-    axios.delete(`http://localhost:5000/tasks/${taskId}`)
+    axios.delete(`${BACKEND_URL}/tasks/${taskId}`)
       .then(response => {
         setTasks(prevTasks => prevTasks.filter(task => task._id !== taskId));
       })
@@ -81,8 +81,6 @@ function App() {
   };
 
   console.log('Hello from frontend!');
-  
-
 
   return (
     <div className="container">
