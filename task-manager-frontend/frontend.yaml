@@ -20,7 +20,7 @@ spec:
           limits:
             cpu: 0.5
             memory: 100Mi
-        automountServiceAccountToken: false
+      automountServiceAccountToken: false
         ports:
         - containerPort: 3000
         env:
