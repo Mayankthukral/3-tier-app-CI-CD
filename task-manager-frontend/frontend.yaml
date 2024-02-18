@@ -16,6 +16,11 @@ spec:
       containers:
       - name: frontend
         image: mayank7833/newfrontendright:latest
+        resources:
+          limits:
+            cpu: 0.5
+            memory: 100Mi
+        automountServiceAccountToken: false
         ports:
         - containerPort: 3000
         env:
