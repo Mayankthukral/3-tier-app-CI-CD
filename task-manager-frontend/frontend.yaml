@@ -29,7 +29,7 @@ spec:
         env:
         - name: REACT_APP_BACKEND_URL
           value: "http://backend-service/tasks"
-        automountServiceAccountToken: false
+      automountServiceAccountToken: false
 
 ---
 # frontend-service.yaml
