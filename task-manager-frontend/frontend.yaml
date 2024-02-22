@@ -28,12 +28,10 @@ spec:
         - containerPort: 3000
         env:
         - name: REACT_APP_BACKEND_URL
-          value: "http://backend-service/tasks"
-      automountServiceAccountToken: false
-
+          value: "http://backend-service.ingress-basic.svc.cluster.local:80"
 ---
 # frontend-service.yaml
-apiVersion: v1
+apiVersion: v1s
 kind: Service
 metadata:
   name: frontend-service
@@ -45,3 +43,6 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 3000
+     
+
+
