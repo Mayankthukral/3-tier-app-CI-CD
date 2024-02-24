@@ -27,11 +27,13 @@ spec:
         ports:
         - containerPort: 5000
         env:  # Add this section
-        - name: MONGO_URI  # Name of the environment variable
-          valueFrom:
-            secretKeyRef:
-              name: mongodb-secret  # Name of the secret
-              key: mongo-uri  # Key in the secret
+          - name: MONGO_URI  # Name of the environment variable
+            valueFrom:
+              secretKeyRef:
+                name: mongodb-secret  # Name of the secret
+                key: mongo-uri  # Key in the secret
+        automountServiceAccountToken: false
+
 ---
 # backend-service.yaml
 apiVersion: v1
@@ -46,4 +48,4 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 5000
-    
+  type: LoadBalancer
