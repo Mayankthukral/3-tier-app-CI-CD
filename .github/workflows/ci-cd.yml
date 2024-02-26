@@ -5,6 +5,10 @@ on:
     branches:
       - testing 
       - master 
+
+permissions:
+      id-token: write
+      contents: read
     
 jobs:
   build:
