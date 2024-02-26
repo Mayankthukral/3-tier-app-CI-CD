@@ -101,9 +101,11 @@ jobs:
         with:  
           sarif_file: |
              trivy-results-frontend.sarif
+      
 
       - name: 'Az CLI login'
         run: |
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
           az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
         env:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
