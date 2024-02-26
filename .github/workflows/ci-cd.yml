@@ -139,6 +139,10 @@ jobs:
       - name: Terraform Output
         if: github.ref == 'refs/heads/testing'
         run: terraform output
+
+      - name: Terraform Destroy
+        if: github.ref =='refs/heads/testing'
+        run: terraform destroy -auto-approve
              
           
           
