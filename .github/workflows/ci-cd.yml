@@ -140,9 +140,33 @@ jobs:
         if: github.ref == 'refs/heads/testing'
         run: terraform output
 
-      - name: Terraform Destroy
-        if: github.ref =='refs/heads/testing'
-        run: terraform destroy -auto-approve
+      - name: Get kubeconfig from Azure
+        run: |
+          az aks get-credentials --resource-group my_resource_group --name testing_cluster
+      
+      - name: Install and set up kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+      
+      - name: Deploy to Kubernetes
+        if: github.ref == 'refs/heads/testing'
+        run: |
+          cd kubernetes_manifests
+          kubectl create namespace testing_cluster
+          kubectl apply -f mongo.yaml -n testing_cluster
+          kubectl apply -f backend.yaml -n testing_cluster
+          kubectl apply -f frontend.yaml -n testing_cluster
+          kubectl apply -f ingress.yaml -n testing_cluster
+          
+      - name: Get Ingress IP
+        if: github.ref == 'refs/heads/testing'
+        run: |
+          echo "Waiting for Ingress to be ready..."
+          sleep 180 # Wait for 2 minutes
+          echo "Fetching Ingress details..."
+          kubectl get ingress -n testing_cluster
              
           
           
