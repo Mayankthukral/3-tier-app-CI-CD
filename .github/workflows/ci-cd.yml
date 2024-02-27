@@ -156,7 +156,7 @@ jobs:
           MONGO_BASE64: ${{ secrets.MONGO_BASE64 }}
         run: |
           cd kubernetes_manifests
-          kubectl create namespace testingcluster
+          kubectl create namespace testingcluster || true
           set +x
           echo "
           apiVersion: v1
