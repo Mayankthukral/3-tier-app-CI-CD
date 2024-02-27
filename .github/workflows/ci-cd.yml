@@ -152,10 +152,22 @@ jobs:
       
       - name: Deploy to Kubernetes
         if: github.ref == 'refs/heads/testing'
+        env:
+          MONGO_BASE64: ${{ secrets.MONGO_BASE64 }}
         run: |
           cd kubernetes_manifests
           kubectl create namespace testingcluster
-          kubectl apply -f mongo.yaml -n testing_cluster
+          set +x
+          echo "
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: mongodb-secret
+          type: Opaque
+          data:
+            mongo-uri: $MONGO_BASE64
+          " | kubectl apply -f - -n testingcluster
+          set -x
           kubectl apply -f backend.yaml -n testing_cluster
           kubectl apply -f frontend.yaml -n testing_cluster
           kubectl apply -f ingress.yaml -n testing_cluster
