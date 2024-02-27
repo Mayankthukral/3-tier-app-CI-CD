@@ -157,6 +157,8 @@ jobs:
         run: |
           cd kubernetes_manifests
           kubectl create namespace testingcluster || true
+          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+          helm install nginx-ingress ingress-nginx/ingress-nginx --namespace ingress-basic --set controller.replicaCount=2 --set controller.nodeSelector."beta\.kubernetes\.io/os"=linux --set defaultBackend.nodeSelector."beta\.kubernetes\.io/os"=linux
           set +x
           echo "
           apiVersion: v1
@@ -176,9 +178,9 @@ jobs:
         if: github.ref == 'refs/heads/testing'
         run: |
           echo "Waiting for Ingress to be ready..."
-          sleep 180 # Wait for 3 minutes
+          sleep 240 # Wait for 4 minutes
           echo "Fetching Ingress details..."
-          kubectl get ingress -n testing_cluster
+          kubectl get ingress -n testingcluster
              
           
           
