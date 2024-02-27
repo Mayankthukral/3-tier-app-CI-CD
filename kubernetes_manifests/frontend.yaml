@@ -27,7 +27,7 @@ spec:
         - containerPort: 3000
         env:
         - name: REACT_APP_BACKEND_URL
-          value: "http://backend-service.testing_cluster.svc.cluster.local:80"
+          value: "http://backend-service.testingcluster.svc.cluster.local:80"
 ---
 # frontend-service.yaml
 apiVersion: v1
