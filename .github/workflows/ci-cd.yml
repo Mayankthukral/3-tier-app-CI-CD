@@ -168,15 +168,15 @@ jobs:
             mongo-uri: $MONGO_BASE64
           " | kubectl apply -f - -n testingcluster
           set -x
-          kubectl apply -f backend.yaml -n testing_cluster
-          kubectl apply -f frontend.yaml -n testing_cluster
-          kubectl apply -f ingress.yaml -n testing_cluster
+          kubectl apply -f backend.yaml -n testingcluster
+          kubectl apply -f frontend.yaml -n testingcluster
+          kubectl apply -f ingress.yaml -n testingcluster
           
       - name: Get Ingress IP
         if: github.ref == 'refs/heads/testing'
         run: |
           echo "Waiting for Ingress to be ready..."
-          sleep 180 # Wait for 2 minutes
+          sleep 180 # Wait for 3 minutes
           echo "Fetching Ingress details..."
           kubectl get ingress -n testing_cluster
              

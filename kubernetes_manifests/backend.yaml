@@ -13,6 +13,7 @@ spec:
       labels:
         app: backend
     spec:
+      automountServiceAccountToken: false
       containers:
       - name: backend
         image: mayank7833/backend:latest
@@ -31,7 +32,7 @@ spec:
               secretKeyRef:
                 name: mongodb-secret  # Name of the secret
                 key: mongo-uri  # Key in the secret
-        automountServiceAccountToken: false
+        
 
 ---
 # backend-service.yaml
@@ -46,4 +47,3 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 5000
-  type: LoadBalancer
