@@ -154,7 +154,7 @@ jobs:
         if: github.ref == 'refs/heads/testing'
         run: |
           cd kubernetes_manifests
-          kubectl create namespace testing_cluster
+          kubectl create namespace testingcluster
           kubectl apply -f mongo.yaml -n testing_cluster
           kubectl apply -f backend.yaml -n testing_cluster
           kubectl apply -f frontend.yaml -n testing_cluster
