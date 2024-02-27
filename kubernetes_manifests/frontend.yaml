@@ -3,7 +3,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend
-  namespace: ingress-basic
 spec:
   replicas: 1
   selector:
@@ -28,14 +27,13 @@ spec:
         - containerPort: 3000
         env:
         - name: REACT_APP_BACKEND_URL
-          value: "http://backend-service.ingress-basic.svc.cluster.local:80"
+          value: "http://backend-service.testing_cluster.svc.cluster.local:80"
 ---
 # frontend-service.yaml
-apiVersion: v1s
+apiVersion: v1
 kind: Service
 metadata:
   name: frontend-service
-  namespace: ingress-basic
 spec:
   selector:
     app: frontend
