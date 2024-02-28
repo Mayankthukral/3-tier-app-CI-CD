@@ -27,7 +27,17 @@ spec:
         - containerPort: 3000
         env:
         - name: REACT_APP_BACKEND_URL
-          value: "http://backend-service.testingcluster.svc.cluster.local:80"
+          valueFrom:
+            configMapKeyRef:
+              name: backend-configmap
+              key: backend_url
+        volumeMounts:
+        - name: config
+          mountPath: /config
+      volumes:
+      - name: config
+        configMap:
+          name: backend-configmap
 ---
 # frontend-service.yaml
 apiVersion: v1
@@ -41,6 +51,3 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 3000
-     
-
-
