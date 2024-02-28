@@ -5,6 +5,11 @@ on:
     branches:
       - testing 
       - master 
+
+permissions:
+      id-token: write
+      contents: write
+      security-events: write
     
 jobs:
   build:
@@ -96,6 +101,91 @@ jobs:
         with:  
           sarif_file: |
              trivy-results-frontend.sarif
+      
+
+      - name: 'Az CLI login'
+        run: |
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2.0.2
+        with:
+          terraform_version: latest
+          cli_config_credentials_token: ${{ secrets.TFC_TOKEN_ID }}
+      - name: Terraform Init
+        id: init
+        run: terraform init
+      
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan
+        continue-on-error: true
+
+      - name: Terraform Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/testing'
+        run: terraform apply -auto-approve
+
+      - name: Terraform Output
+        if: github.ref == 'refs/heads/testing'
+        run: terraform output
+
+      - name: Get kubeconfig from Azure
+        run: |
+          az aks get-credentials --resource-group my_resource_group --name testing_cluster
+      
+      - name: Install and set up kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+      
+      - name: Deploy to Kubernetes
+        if: github.ref == 'refs/heads/testing'
+        env:
+          MONGO_BASE64: ${{ secrets.MONGO_BASE64 }}
+        run: |
+          cd kubernetes_manifests
+          kubectl create namespace testingcluster || true
+          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+          # Install the Nginx Ingress controller with specified configurations
+          helm install nginx-ingress ingress-nginx/ingress-nginx \
+            --namespace testingcluster \
+            --set controller.replicaCount=2 \
+            --set controller.nodeSelector."beta\.kubernetes\.io/os"=linux \
+            --set defaultBackend.nodeSelector."beta\.kubernetes\.io/os"=linux
+          set +x
+          echo "
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: mongodb-secret
+          type: Opaque
+          data:
+            mongo-uri: $MONGO_BASE64
+          " | kubectl apply -f - -n testingcluster
+          set -x
+          kubectl apply -f backend.yaml -n testingcluster
+          kubectl apply -f frontend.yaml -n testingcluster
+          kubectl apply -f ingress.yaml -n testingcluster
+          
+      - name: Get Ingress IP
+        if: github.ref == 'refs/heads/testing'
+        run: |
+          echo "Waiting for Ingress to be ready..."
+          sleep 240 # Wait for 4 minutes
+          echo "Fetching Ingress details..."
+          kubectl get ingress -n testingcluster
              
           
           
