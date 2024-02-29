@@ -3,4 +3,6 @@ kind: ConfigMap
 metadata:
   name: backend-configmap
 data:
-  backend_url: "http://backend-service.ingress-basic.svc.cluster.local:80"
+  backend_url: "  "
+# ip of ingress will be used to connect to the backend
+# http://backend-service.ingress-basic.svc.cluster.local:80 cannot be used because frontend served on client side cannot use dns used inside the K8s cluster 
