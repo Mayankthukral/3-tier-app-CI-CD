@@ -3,7 +3,7 @@ name: 3-tier-app-CI/CD
 on:
   push:
     branches:
-      - testing 
+      - workflow_dispatch 
       - master 
 
 permissions:
