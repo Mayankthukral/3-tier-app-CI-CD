@@ -9,6 +9,18 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+// Middleware to authenticate requests
+app.use((req, res, next) => {
+  const authHeader = req.headers['custom-auth-token'];
+  const authToken = process.env.AUTH_TOKEN; // Load auth token from environment variable
+
+  if (authHeader && authHeader === authToken) {
+    next(); // Continue to the next middleware
+  } else {
+    res.status(401).json({ error: 'Unauthorized' });
+  }
+});
+
 mongoose.connect(process.env.MONGODB_URL, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
