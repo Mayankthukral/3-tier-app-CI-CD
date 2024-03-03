@@ -1,0 +1,54 @@
+---
+- hosts: custom_host
+  become: yes
+  tasks:
+    - name: Update apt cache
+      apt: update_cache=yes
+
+    - name: Install apt-transport-https and ca-certificates
+      apt: 
+        name: apt-transport-https,ca-certificates
+        state: present
+
+    - name: Add Docker GPG apt Key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker Repository
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable
+        state: present
+
+    - name: Update apt cache
+      apt: update_cache=yes
+
+    - name: Install Docker
+      apt: 
+        name: docker-ce
+        state: present
+
+    - name: Install Node.js
+      apt: 
+        name: nodejs
+        state: present
+
+    - name: Install npm
+      apt: 
+        name: npm
+        state: present
+
+    - name: Install Azure CLI
+      shell: |
+        curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
+    - name: Install Trivy
+      shell: |
+        wget https://github.com/aquasecurity/trivy/releases/download/v0.19.2/trivy_0.19.2_Linux-64bit.deb
+        dpkg -i trivy_0.19.2_Linux-64bit.deb
+
+    - name: Install kubectl
+      shell: |
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        chmod +x kubectl
+        sudo mv kubectl /usr/local/bin/
