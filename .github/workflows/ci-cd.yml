@@ -4,7 +4,8 @@ on:
   push:
     branches:
      - workflow_dispatch 
-      - master  
+     - master  
+     - testing 
 
 permissions:
       id-token: write
