@@ -1,24 +1,18 @@
+// import './setupProxy';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css'; 
 
-function App() {
+function MyApp() {
   const [tasks, setTasks] = useState([]);
   const [newTask, setNewTask] = useState({ title: '', description: '' });
   const [editingTask, setEditingTask] = useState(null);
   const [editedTitle, setEditedTitle] = useState('');
   const [editedDescription, setEditedDescription] = useState('');
 
-  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-  const CUSTOM_AUTH_TOKEN = process.env.REACT_APP_CUSTOM_AUTH_TOKEN;
-
   useEffect(() => {
     // Fetch tasks from the backend when the component mounts
-    axios.get(`${BACKEND_URL}/tasks`, {
-      headers: {
-        'Custom-Auth-Token': CUSTOM_AUTH_TOKEN
-      }
-    })
+    axios.get('/api/tasks')
       .then(response => setTasks(response.data))
       .catch(error => console.error('Error fetching tasks:', error));
   }, []); 
@@ -47,11 +41,7 @@ function App() {
       return;
     }
   
-    axios.post(`${BACKEND_URL}/tasks`, newTask, {
-      headers: {
-        'Custom-Auth-Token': CUSTOM_AUTH_TOKEN
-      }
-    })
+    axios.post('/api/tasks', newTask)
       .then(response => {
         setTasks(prevTasks => [...prevTasks, response.data]);
         setNewTask({ title: '', description: '' });
@@ -66,13 +56,9 @@ function App() {
   };
 
   const handleSaveEdit = (task) => {
-    axios.put(`${BACKEND_URL}/tasks/${task._id}`, {
+    axios.put(`/api/tasks/${task._id}`, {
       title: editedTitle,
       description: editedDescription,
-    }, {
-      headers: {
-        'Custom-Auth-Token': CUSTOM_AUTH_TOKEN
-      }
     })
       .then(response => {
         setTasks(prevTasks =>
@@ -86,11 +72,7 @@ function App() {
   };
 
   const handleDeleteTask = (taskId) => {
-    axios.delete(`${BACKEND_URL}/tasks/${taskId}`, {
-      headers: {
-        'Custom-Auth-Token': CUSTOM_AUTH_TOKEN
-      }
-    })
+    axios.delete(`/api/tasks/${taskId}`)
       .then(response => {
         setTasks(prevTasks => prevTasks.filter(task => task._id !== taskId));
       })
@@ -178,4 +160,4 @@ function App() {
   );
 }
 
-export default App;
+export default MyApp;
