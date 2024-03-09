@@ -1,0 +1,4 @@
+mongo.yaml
+kubernetes_manifests/mongo.yaml
+README.md
+docker-compose.yml

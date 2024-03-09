@@ -27,12 +27,11 @@ spec:
         ports:
         - containerPort: 5000
         env:  # Add this section
-          - name: MONGO_URI  # Name of the environment variable
+          - name: MONGODB_URL  # Name of the environment variable
             valueFrom:
               secretKeyRef:
                 name: mongodb-secret  # Name of the secret
                 key: mongo-uri  # Key in the secret
-        
 
 ---
 # backend-service.yaml
