@@ -192,7 +192,7 @@ jobs:
           cd kubernetes_manifests
           kubectl apply -f backend.yaml --namespace testingcluster
           kubectl apply -f frontend.yaml --namespace testingcluster
-          kubectl apply -f ingress.yaml --namespace testingcluster
+          
 
       - name: Get Ingress IP
         if: github.ref == 'refs/heads/testing'
