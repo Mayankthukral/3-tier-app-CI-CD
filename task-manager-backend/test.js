@@ -12,7 +12,7 @@ describe('Tasks API', () => {
   it('should create a new task', async () => {
     const res = await chai
       .request(app)
-      .post('/tasks')
+      .post('/api/tasks')
       .send({
         title: 'Task 1',
         description: 'Description for Task 1',
@@ -25,7 +25,7 @@ describe('Tasks API', () => {
   });
 
   it('should get all tasks', async () => {
-    const res = await chai.request(app).get('/tasks');
+    const res = await chai.request(app).get('/api/tasks');
 
     expect(res).to.have.status(200);
     expect(res.body).to.be.an('array');
