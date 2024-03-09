@@ -1,5 +1,5 @@
 ---
-- hosts: custom_host
+- hosts: [localhost]
   become: yes
   tasks:
     - name: Update apt cache
