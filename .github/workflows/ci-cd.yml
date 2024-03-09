@@ -52,11 +52,11 @@ jobs:
               echo "MONGODB_URL=${{ secrets.MONGODB_URL }}" > .env 
               npm test   
       
-      - name: Run backend unit Tests
+      - name: Run frontend unit Tests
         run: |
-            cd task-manager-backend  
-            echo "MONGODB_URL=${{ secrets.MONGODB_URL }}" > .env 
-            npm test
+            cd task-manager-backend
+              echo "MONGODB_URL=${{ secrets.MONGODB_URL }}" > .env 
+              npm test   
             
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
