@@ -11,7 +11,7 @@ spec:
   template:
     metadata:
       labels:
-        app: frontend #it is used in frontend-service 
+        app: frontend # it is used in frontend-service 
     spec:
       containers:
       - name: frontend
@@ -25,21 +25,9 @@ spec:
             memory: 512Mi
         ports:
         - containerPort: 3000
-        env:
-        - name: REACT_APP_BACKEND_URL
-          valueFrom:
-            configMapKeyRef:
-              name: backend-configmap
-              key: backend_url
-        volumeMounts:
-        - name: config
-          mountPath: /config
-      volumes:
-      - name: config
-        configMap:
-          name: backend-configmap
+
 ---
-# frontend-service.yaml
+
 apiVersion: v1
 kind: Service
 metadata:

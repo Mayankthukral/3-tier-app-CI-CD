@@ -1,25 +1,14 @@
-require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+
+require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
-
-// Middleware to authenticate requests
-app.use((req, res, next) => {
-  const authHeader = req.headers['custom-auth-token'];
-  const authToken = process.env.AUTH_TOKEN; // Load auth token from environment variable
-
-  if (authHeader && authHeader === authToken) {
-    next(); // Continue to the next middleware
-  } else {
-    res.status(401).json({ error: 'Unauthorized' });
-  }
-});
 
 mongoose.connect(process.env.MONGODB_URL, {
   useNewUrlParser: true,
@@ -32,7 +21,7 @@ mongoose.connect(process.env.MONGODB_URL, {
     console.error('Error connecting to MongoDB:', error);
   });
 
-app.get('/', (req, res) => {
+app.get('/api', (req, res) => {
   res.send('BACKEND!');
 });
 
@@ -43,7 +32,7 @@ const taskSchema = new mongoose.Schema({
 
 const Task = mongoose.model('Task', taskSchema);
 
-app.post('/tasks', async (req, res) => {
+app.post('/api/tasks', async (req, res) => {
   try {
     const task = new Task(req.body);
     await task.save();
@@ -53,7 +42,7 @@ app.post('/tasks', async (req, res) => {
   }
 });
 
-app.get('/tasks', async (req, res) => {
+app.get('/api/tasks', async (req, res) => {
   try {
     const tasks = await Task.find();
     res.json(tasks);
@@ -62,7 +51,7 @@ app.get('/tasks', async (req, res) => {
   }
 });
 
-app.put('/tasks/:id', async (req, res) => {
+app.put('/api/tasks/:id', async (req, res) => {
   try {
     const task = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json(task);
@@ -71,7 +60,7 @@ app.put('/tasks/:id', async (req, res) => {
   }
 });
 
-app.delete('/tasks/:id', async (req, res) => {
+app.delete('/api/tasks/:id', async (req, res) => {
   try {
     const task = await Task.findByIdAndDelete(req.params.id);
     res.json(task);

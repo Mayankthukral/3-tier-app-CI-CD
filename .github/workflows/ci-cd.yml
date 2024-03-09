@@ -3,8 +3,10 @@ name: 3-tier-app-CI/CD
 on:
   push:
     branches:
-      - workflow_dispatch 
-      - master 
+     - workflow_dispatch 
+     - master  
+     - testing 
+ 
 
 permissions:
       id-token: write
@@ -24,13 +26,13 @@ jobs:
         with:
           node-version: '20'
         
-      - name: Install Ansible
-        run: |
-          python -m pip install --upgrade pip
-          pip install ansible
 
-      - name: Run Ansible Playbook
-        run: ansible-playbook playbook.yaml
+      - name: setup python 
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          
+
 
       - name: Install frontend Dependencies
         run: |
@@ -158,7 +160,7 @@ jobs:
           chmod +x kubectl
           sudo mv kubectl /usr/local/bin/
       
-      - name: Deploy to Kubernetes
+      - name: Install Nginx Ingress Controller
         if: github.ref == 'refs/heads/testing'
         env:
           MONGO_BASE64: ${{ secrets.MONGO_BASE64 }}
@@ -183,10 +185,16 @@ jobs:
             mongo-uri: $MONGO_BASE64
           " | kubectl apply -f - -n testingcluster
           set -x
-          kubectl apply -f backend.yaml -n testingcluster
-          kubectl apply -f frontend.yaml -n testingcluster
-          kubectl apply -f ingress.yaml -n testingcluster
-          
+
+      - name: Apply Kubernetes manifests
+        if: github.ref == 'refs/heads/testing'
+        run: |
+          cd kubernetes_manifests
+          kubectl apply -f mongo.yaml --namespace testingcluster
+          kubectl apply -f backend.yaml --namespace testingcluster
+          kubectl apply -f frontend.yaml --namespace testingcluster
+          kubectl apply -f ingress.yaml --namespace testingcluster
+
       - name: Get Ingress IP
         if: github.ref == 'refs/heads/testing'
         run: |
