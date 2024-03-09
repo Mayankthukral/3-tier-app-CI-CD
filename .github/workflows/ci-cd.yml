@@ -190,7 +190,6 @@ jobs:
         if: github.ref == 'refs/heads/testing'
         run: |
           cd kubernetes_manifests
-          kubectl apply -f mongo.yaml --namespace testingcluster
           kubectl apply -f backend.yaml --namespace testingcluster
           kubectl apply -f frontend.yaml --namespace testingcluster
           kubectl apply -f ingress.yaml --namespace testingcluster
