@@ -38,7 +38,7 @@ jobs:
           pip install ansible
 
       - name: Run Ansible Playbook
-        run: ansible-playbook playbook.yaml
+        run: ansible-playbook -i inventory.ini playbook.yaml
 
 
       - name: Install frontend Dependencies
