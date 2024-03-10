@@ -170,7 +170,7 @@ jobs:
           helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
           # Install the Nginx Ingress controller with specified configurations
           helm install nginx-ingress ingress-nginx/ingress-nginx \
-            --namespace testingcluster \
+            --namespace testingcluster \ || true
             --set controller.replicaCount=2 \
             --set controller.nodeSelector."beta\.kubernetes\.io/os"=linux \
             --set defaultBackend.nodeSelector."beta\.kubernetes\.io/os"=linux
