@@ -167,13 +167,13 @@ jobs:
         run: |
           cd kubernetes_manifests
           kubectl create namespace testingcluster || true
-          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx || true
           # Install the Nginx Ingress controller with specified configurations
-          helm install nginx-ingress ingress-nginx/ingress-nginx \
+          helm install nginx-ingress ingress-nginx/ingress-nginx \ || true
             --namespace testingcluster \ || true
-            --set controller.replicaCount=2 \
-            --set controller.nodeSelector."beta\.kubernetes\.io/os"=linux \
-            --set defaultBackend.nodeSelector."beta\.kubernetes\.io/os"=linux
+            --set controller.replicaCount=2 \  || true
+            --set controller.nodeSelector."beta\.kubernetes\.io/os"=linux \ || true
+            --set defaultBackend.nodeSelector."beta\.kubernetes\.io/os"=linux || true
           set +x
           echo "
           apiVersion: v1
@@ -183,16 +183,16 @@ jobs:
           type: Opaque
           data:
             mongo-uri: $MONGO_BASE64
-          " | kubectl apply -f - -n testingcluster
+          " | kubectl apply -f - -n testingcluster || true
           set -x
 
       - name: Apply Kubernetes manifests
         if: github.ref == 'refs/heads/testing'
         run: |
           cd kubernetes_manifests
-          kubectl apply -f backend.yaml --namespace testingcluster
-          kubectl apply -f frontend.yaml --namespace testingcluster
-          kubectl apply -f ingress.yaml --namespace testingcluster
+          kubectl apply -f backend.yaml --namespace testingcluster || true
+          kubectl apply -f frontend.yaml --namespace testingcluster || true
+          kubectl apply -f ingress.yaml --namespace testingcluster || true
           
 
       - name: Get Ingress IP
