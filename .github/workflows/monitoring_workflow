@@ -1,9 +1,13 @@
 name: Deploy Prometheus and Grafana
 
 on:
+  workflow_run:
+    workflows: ["3-tier-app-CI/CD"]  # Adjusted to match the name of the CI/CD workflow
+    types:
+      - completed
   push:
     branches:
-      - monitoring_workflow  # Adjust the branch name as needed
+      - monitoring_workflow  # Specify the branch name here
 
 jobs:
   deploy:
