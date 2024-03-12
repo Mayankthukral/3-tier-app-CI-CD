@@ -1,0 +1,113 @@
+name: Deploy Prometheus and Grafana
+
+on:
+  workflow_run:
+    workflows: ["3-tier-app-CI/CD"] # Adjusted to match the name of the CI/CD workflow
+    types:
+      - completed
+  push:
+    branches:
+      - monitoring_workflow # Specify the branch name here
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Install kubectl
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v1
+        with:
+          version: "latest"
+
+      - name: "Az CLI login"
+        run: |
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Get kubeconfig from Azure
+        run: |
+          az aks get-credentials --resource-group myResourceGroup --name myAKSCluster
+
+      - name: Check if Prometheus is already installed
+        id: check_prometheus
+        run: |
+          if kubectl get deployment prometheus-server  &>/dev/null; then
+            echo "Prometheus is already installed."
+            echo "::set-output name=prometheus_installed::true"
+          else
+            echo "Prometheus is not installed."
+            echo "::set-output name=prometheus_installed::false"
+          fi
+
+      - name: Add Prometheus Helm repository and install if not already installed
+        if: steps.check_prometheus.outputs.prometheus_installed != 'true'
+        run: |
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo update
+          helm install prometheus prometheus-community/prometheus
+          kubectl expose service prometheus-server --type=LoadBalancer --target-port=9090 --name=prometheus-server-ext
+
+          - name: Check if Prometheus is already installed
+          id: check_prometheus
+          run: |
+            if kubectl get deployment prometheus-server -n monitoring &>/dev/null; then
+              echo "Prometheus is already installed."
+              echo "::set-output name=prometheus_installed::true"
+            else
+              echo "Prometheus is not installed."
+              echo "::set-output name=prometheus_installed::false"
+            fi
+
+      - name: Add Prometheus Helm repository and install if not already installed
+        if: steps.check_prometheus.outputs.prometheus_installed != 'true'
+        run: |
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+              helm repo update
+              helm install prometheus prometheus-community/prometheus
+              kubectl expose service prometheus-server --type=LoadBalancer --target-port=9090 --name=prometheus-server-ext || true
+
+      - name: Check if Grafana is already installed
+        id: check_grafana
+        run: |
+          if kubectl get deployment grafana  &>/dev/null; then
+            echo "Grafana is already installed."
+            echo "::set-output name=grafana_installed::true"
+          else
+            echo "Grafana is not installed."
+            echo "::set-output name=grafana_installed::false"
+          fi
+
+      - name: Add Grafana Helm repository and install if not already installed
+        if: steps.check_grafana.outputs.grafana_installed != 'true'
+        run: |
+          helm repo add grafana https://grafana.github.io/helm-charts
+          helm repo update
+          helm install grafana grafana/grafana
+          kubectl expose service grafana — type=Loadbalanacer — target-port=3000 — name=grafana-ext || true
+
+      # Retrieve Grafana admin password from Kubernetes secret
+      - name: Get Grafana admin password
+        id: get_password
+        run: echo "::set-output name=password::$(kubectl get secret  -o jsonpath="{.data.admin-password}" | base64 --decode)"
+
+      # Store the password as a secret
+      - name: Store Grafana admin password as secret
+        run: echo "${{ steps.get_password.outputs.password }}" | az keyvault secret set --vault-name todovaultformyapp  --name GrafanaAdminPassword --value -
+
+      # Update Grafana deployment with the password as an environment variable
+      - name: Update Grafana deployment
+        run: |
+          PASSWORD=$(echo "${{ steps.get_password.outputs.password }}" | base64)
+          sed -i "s|{{GRAFANA_PASSWORD}}|${PASSWORD}|g" grafana-service.yaml || true
+          kubectl apply -f grafana-service.yaml || true
+          kubectl get svc
+
+      # Cleanup: Remove the password from the output
+      - name: Cleanup password from logs
+        run: echo "::remove-output name=password"
