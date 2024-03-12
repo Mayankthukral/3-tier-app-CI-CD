@@ -3,16 +3,15 @@ name: 3-tier-app-CI/CD
 on:
   push:
     branches:
-     - workflow_dispatch 
-     - master  
-     - testing 
- 
+      - workflow_dispatch
+      - master
+      - testing
 
 permissions:
-      id-token: write
-      contents: write
-      security-events: write
-    
+  id-token: write
+  contents: write
+  security-events: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -24,15 +23,12 @@ jobs:
       - name: Setup Node.js environment
         uses: actions/setup-node@v4.0.2
         with:
-          node-version: '20'
-        
+          node-version: "20"
 
-      - name: setup python 
+      - name: setup python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
-          
-
+          python-version: "3.10"
 
       - name: Install frontend Dependencies
         run: |
@@ -40,48 +36,46 @@ jobs:
           ls | cat simplefile.txt
           npm install
 
-      - name: Install backend Dependencies 
+      - name: Install backend Dependencies
         run: |
           cd task-manager-backend 
           ls | cat simplefile.txt
-          npm install   
-          
+          npm install
+
       - name: Run frontend unit Tests
         run: |
-            cd task-manager-frontend 
-              echo "MONGODB_URL=${{ secrets.MONGODB_URL }}" > .env 
-              npm test   
-      
+          cd task-manager-frontend 
+            echo "MONGODB_URL=${{ secrets.MONGODB_URL }}" > .env 
+            npm test
+
       - name: Run frontend unit Tests
         run: |
-            cd task-manager-backend
-              echo "MONGODB_URL=${{ secrets.MONGODB_URL }}" > .env 
-              npm test   
-            
+          cd task-manager-backend
+            echo "MONGODB_URL=${{ secrets.MONGODB_URL }}" > .env 
+            npm test
+
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
-          GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUBTOKEN }}  # Needed to get PR information, if any
+          GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUBTOKEN }} # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
-          args: 
-            -Dsonar.organization=${{ secrets.SONARORGANIZATION}}
+          args: -Dsonar.organization=${{ secrets.SONARORGANIZATION}}
             -Dsonar.projectKey=${{ secrets.SONARPROJECT}}
-            -Dsonar.sources=task-manager-backend,task-manager-frontend 
-      
+            -Dsonar.sources=task-manager-backend,task-manager-frontend
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
-      
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      
-      
+
       - name: Build and push frontend image
         uses: docker/build-push-action@v5
         with:
@@ -96,30 +90,26 @@ jobs:
           push: true
           tags: mayank7833/backend:latest
 
-
       - name: Install and run Trivy on frontend image
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'mayank7833/frontend:latest'
-          format: 'sarif'
-          output: 'trivy-results-frontend.sarif'
-
-
+          image-ref: "mayank7833/frontend:latest"
+          format: "sarif"
+          output: "trivy-results-frontend.sarif"
 
       - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
-        with:  
+        with:
           sarif_file: |
-             trivy-results-frontend.sarif
-      
+            trivy-results-frontend.sarif
 
-      - name: 'Az CLI login'
+      - name: "Az CLI login"
         run: |
           curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
           az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
         env:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-  
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2.0.2
         with:
@@ -128,7 +118,7 @@ jobs:
       - name: Terraform Init
         id: init
         run: terraform init
-      
+
       - name: Terraform Validate
         id: validate
         run: terraform validate
@@ -153,13 +143,13 @@ jobs:
       - name: Get kubeconfig from Azure
         run: |
           az aks get-credentials --resource-group my_resource_group --name testing_cluster
-      
+
       - name: Install and set up kubectl
         run: |
           curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
           chmod +x kubectl
           sudo mv kubectl /usr/local/bin/
-      
+
       - name: Install Nginx Ingress Controller
         if: github.ref == 'refs/heads/testing'
         env:
@@ -193,7 +183,6 @@ jobs:
           kubectl apply -f backend.yaml --namespace testingcluster || true
           kubectl apply -f frontend.yaml --namespace testingcluster || true
           kubectl apply -f ingress.yaml --namespace testingcluster || true
-          
 
       - name: Get Ingress IP
         if: github.ref == 'refs/heads/testing'
@@ -202,6 +191,3 @@ jobs:
           sleep 240 # Wait for 4 minutes
           echo "Fetching Ingress details..."
           kubectl get ingress -n testingcluster
-             
-          
-          
