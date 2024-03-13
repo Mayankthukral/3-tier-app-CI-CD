@@ -9,7 +9,7 @@ on:
 jobs:
   monitor:
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion == 'success' && (needs.build.outputs.trigger_reason == 'master' || needs.build.outputs.trigger_reason == 'testing')
+    if: github.event.workflow_run.conclusion == 'success' && (needs.monitor.outputs.branch == 'master' || needs.monitor.outputs.branch == 'testing')
 
     steps:
       - name: Checkout code

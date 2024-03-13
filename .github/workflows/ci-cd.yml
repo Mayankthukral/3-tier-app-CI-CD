@@ -240,9 +240,12 @@ jobs:
             echo "::set-output name=trigger_reason::testing"
           else
             echo "::set-output name=trigger_reason::unknown"
-          fi
 
-        # Other steps omitted for brevity
+            fi
+
+      - name: Print Trigger Reason
+        run: |
+          echo "Trigger Reason: ${{ steps.determine_trigger.outputs.trigger_reason }}"
 
     outputs:
       branch: ${{ steps.determine_trigger.outputs.trigger_reason }}
