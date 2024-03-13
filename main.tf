@@ -5,9 +5,9 @@ resource "azurerm_resource_group" "rg" {
 
 resource "azurerm_kubernetes_cluster" "k8s" {
   location            = azurerm_resource_group.rg.location
-  name                = "testing_cluster" 
+  name                = "todoappcluster" 
   resource_group_name = azurerm_resource_group.rg.name
-  dns_prefix          = "myresourcegoup-testingcluster" 
+  dns_prefix          = "myresourcegoup-todoappcluster" 
 
   identity {
     type = "SystemAssigned"
