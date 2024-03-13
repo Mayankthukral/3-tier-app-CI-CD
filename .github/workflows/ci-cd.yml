@@ -133,16 +133,14 @@ jobs:
         run: exit 1
 
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/testing'
         run: terraform apply -auto-approve
 
       - name: Terraform Output
-        if: github.ref == 'refs/heads/testing'
         run: terraform output
 
       - name: Get kubeconfig from Azure
         run: |
-          az aks get-credentials --resource-group my_resource_group --name testing_cluster
+          az aks get-credentials --resource-group my_resource_group --name todoappcluster
 
       - name: Install and set up kubectl
         run: |
@@ -151,16 +149,16 @@ jobs:
           sudo mv kubectl /usr/local/bin/
 
       - name: Install Nginx Ingress Controller
-        if: github.ref == 'refs/heads/testing'
+        if: github.ref == 'refs/heads/master'
         env:
           MONGO_BASE64: ${{ secrets.MONGO_BASE64 }}
         run: |
           cd kubernetes_manifests
-          kubectl create namespace testingcluster || true
+          kubectl create namespace -n 3tierapp || true
           helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx || true
           # Install the Nginx Ingress controller with specified configurations
           helm install nginx-ingress ingress-nginx/ingress-nginx \ || true
-            --namespace testingcluster \ || true
+            --namespace 3tierapp  \ || true
             --set controller.replicaCount=2 \  || true
             --set controller.nodeSelector."beta\.kubernetes\.io/os"=linux \ || true
             --set defaultBackend.nodeSelector."beta\.kubernetes\.io/os"=linux || true
@@ -173,21 +171,62 @@ jobs:
           type: Opaque
           data:
             mongo-uri: $MONGO_BASE64
-          " | kubectl apply -f - -n testingcluster || true
+          " | kubectl apply -f - -n 3tierapp  || true
           set -x
 
-      - name: Apply Kubernetes manifests
+      - name: Install Nginx Ingress Controller
+        if: github.ref == 'refs/heads/testing'
+        env:
+          MONGO_BASE64: ${{ secrets.MONGO_BASE64 }}
+        run: |
+          cd kubernetes_manifests || true
+          kubectl create namespace -n testingnamespace || true
+          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx || true
+          # Install the Nginx Ingress controller with specified configurations
+          helm install nginx-ingress ingress-nginx/ingress-nginx \ || true
+            --namespace testingnamespace  \ || true
+            --set controller.replicaCount=2 \  || true
+            --set controller.nodeSelector."beta\.kubernetes\.io/os"=linux \ || true
+            --set defaultBackend.nodeSelector."beta\.kubernetes\.io/os"=linux || true
+          set +x
+          echo "
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: mongodb-secret
+          type: Opaque
+          data:
+            mongo-uri: $MONGO_BASE64
+          " | kubectl apply -f - -n testingnamespace   || true
+          set -x
+
+      - name: Apply Kubernetes deployment
         if: github.ref == 'refs/heads/testing'
         run: |
           cd kubernetes_manifests
-          kubectl apply -f backend.yaml --namespace testingcluster || true
-          kubectl apply -f frontend.yaml --namespace testingcluster || true
-          kubectl apply -f ingress.yaml --namespace testingcluster || true
+          kubectl apply -f backend.yaml --namespace testingnamespace  || true
+          kubectl apply -f frontend.yaml --namespace testingnamespace  || true
+          kubectl apply -f ingress.yaml --namespace testingnamespace  || true
 
-      - name: Get Ingress IP
-        if: github.ref == 'refs/heads/testing'
+      - name: Apply Kubernetes deployment
+        if: github.ref == 'refs/heads/master'
+        run: |
+          cd kubernetes_manifests
+          kubectl apply -f backend.yaml --namespace 3tierapp  || true
+          kubectl apply -f frontend.yaml --namespace 3tierapp  || true
+          kubectl apply -f ingress.yaml --namespace 3tierapp  || true
+
+      - name: Get Ingress IP of production
+        if: github.ref == 'refs/heads/master'
         run: |
           echo "Waiting for Ingress to be ready..."
-          sleep 240 # Wait for 4 minutes
+          sleep 120 # Wait for 2 minutes
           echo "Fetching Ingress details..."
-          kubectl get ingress -n testingcluster
+          kubectl get ingress -n 3tierapp
+
+      - name: Get Ingress IP of testing
+        run: |
+          echo "Waiting for Ingress to be ready..."
+          sleep 120 # Wait for 2 minutes
+          echo "Fetching Ingress details..."
+          kubectl get ingress -n testingnamespace
