@@ -5,14 +5,11 @@ on:
     workflows: ["3-tier-app-CI/CD"] # Adjusted to match the name of the CI/CD workflow
     types:
       - completed
-  push:
-    branches:
-      - master
-      - testing
 
 jobs:
-  deploy:
+  monitor:
     runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success' && (needs.build.outputs.trigger_reason == 'master' || needs.build.outputs.trigger_reason == 'testing')
 
     steps:
       - name: Checkout code
