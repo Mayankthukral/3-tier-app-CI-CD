@@ -32,7 +32,7 @@ jobs:
 
       - name: Get kubeconfig from Azure
         run: |
-          az aks get-credentials --resource-group myResourceGroup --name myAKSCluster
+          az aks get-credentials --resource-group my_resource_group --name todoappcluster
 
       - name: Check if Prometheus is already installed
         id: check_prometheus
@@ -98,7 +98,7 @@ jobs:
 
       # Store the password as a secret
       - name: Store Grafana admin password as secret
-        run: echo "${{ steps.get_password.outputs.password }}" | az keyvault secret set --vault-name todovaultformyapp  --name GrafanaAdminPassword --value -
+        run: echo "${{ steps.get_password.outputs.password }}" | az keyvault secret set --vault-name newtodovaultformyapp  --name GrafanaAdminPassword --value -
 
       # Update Grafana deployment with the password as an environment variable
       - name: Update Grafana deployment
