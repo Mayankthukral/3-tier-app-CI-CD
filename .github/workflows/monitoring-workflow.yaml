@@ -1,0 +1,160 @@
+name: Deploy Prometheus and Grafana seprately in production and testing
+
+on:
+  workflow_run:
+    workflows: ["3-tier-app-CI/CD"] # Adjusted to match the name of the CI/CD workflow
+    types:
+      - completed
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success' && (needs.build.outputs.trigger_reason == 'master' || needs.build.outputs.trigger_reason == 'testing')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Install kubectl
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: "latest"
+
+      - name: "Az CLI login"
+        run: |
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Get kubeconfig from Azure
+        run: |
+          az aks get-credentials --resource-group my_resource_group --name todoappcluster
+
+      - name: Check if Prometheus is already installed in production
+        if: github.ref == 'refs/heads/master'
+        id: check_prometheus_production
+        run: |
+          if kubectl get deployment prometheus-server -n production  &>/dev/null; then
+            echo "Prometheus is already installed."
+            echo "::set-output name=prometheus_installed::true"
+          else
+            echo "Prometheus is not installed."
+            echo "::set-output name=prometheus_installed::false"
+          fi
+
+      - name: Add Prometheus Helm repository and install if not already installed
+        if: github.ref == 'refs/heads/master' && steps.check_prometheus_production.outputs.prometheus_installed != 'true'
+        run: |
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts -n production
+          helm repo update -n production
+          helm install prometheus prometheus-community/prometheus -n production
+          kubectl expose service prometheus-server --type=LoadBalancer --target-port=9090 --name=prometheus-server-ext -n production
+
+          - name: Get kubeconfig from Azure
+          run: |
+            az aks get-credentials --resource-group my_resource_group --name todoappcluster
+
+      - name: Check if Prometheus is already installed in testingnamespace
+        if: github.ref == 'refs/heads/testing'
+        id: check_prometheus_in_testingnamespace
+        run: |
+          if kubectl get deployment prometheus-server -n testingnamespace  &>/dev/null; then
+            echo "Prometheus is already installed."
+            echo "::set-output name=prometheus_installed::true"
+          else
+            echo "Prometheus is not installed."
+            echo "::set-output name=prometheus_installed::false"
+          fi
+
+      - name: Add Prometheus Helm repository and install if not already installed
+        if: github.ref == 'refs/heads/testing' && steps.check_prometheus_in_testingnamespace.outputs.prometheus_installed != 'true'
+        run: |
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts -n production
+          helm repo update -n testingnamespace
+          helm install prometheus prometheus-community/prometheus -n testingnamespace
+          kubectl expose service prometheus-server --type=LoadBalancer --target-port=9090 --name=prometheus-server-ext -n testingnamespace
+
+      - name: Check if Grafana is already installed in production
+        if: github.ref == 'refs/heads/master'
+        id: check_grafana_production
+        run: |
+          if kubectl get deployment grafana -n production &>/dev/null; then
+            echo "Grafana is already installed."
+            echo "::set-output name=grafana_installed::true"
+          else
+            echo "Grafana is not installed."
+            echo "::set-output name=grafana_installed::false"
+          fi
+
+      - name: Add Grafana Helm repository and install if not already installed in production
+        if: github.ref == 'refs/heads/master' && steps.check_grafana_production.outputs.grafana_installed != 'true'
+        run: |
+          helm repo add grafana https://grafana.github.io/helm-charts -n production
+          helm repo update -n production
+          helm install grafana grafana/grafana -n production
+          kubectl expose service grafana — type=Loadbalanacer — target-port=3000 — name=grafana-ext || true -n production
+
+      - name: Check if Grafana is already installed in testingnamespace
+        if: github.ref == 'refs/heads/testing'
+        id: check_grafana
+        run: |
+          if kubectl get deployment grafana -n testingnamespace  &>/dev/null; then
+            echo "Grafana is already installed."
+            echo "::set-output name=grafana_installed::true"
+          else
+            echo "Grafana is not installed."
+            echo "::set-output name=grafana_installed::false"
+          fi
+
+      - name: Add Grafana Helm repository and install if not already installed in testingnamespace
+        if: github.ref == 'refs/heads/testing' && steps.check_grafana.outputs.grafana_installed != 'true'
+        run: |
+          helm repo add grafana https://grafana.github.io/helm-charts -n testingnamespace
+          helm repo update -n testingnamespace
+          helm install grafana grafana/grafana -n testingnamespace
+          kubectl expose service grafana — type=Loadbalanacer — target-port=3000 — name=grafana-ext || true -n testingnamespace
+
+      - name: Get Grafana admin password in production
+        if: github.ref == 'refs/heads/master'
+        id: get_password_production
+        run: echo "::set-output name=password_production::$(kubectl get secret -n production -o jsonpath="{.data.admin-password}" | base64 --decode)"
+
+      - name: Get Grafana admin password in testingnamespace
+        if: github.ref == 'refs/heads/testing'
+        id: get_password_testingnamespace
+        run: echo "::set-output name=password_testingnamespace::$(kubectl get secret -n testingnamespace -o jsonpath="{.data.admin-password}" | base64 --decode)"
+
+      # Store the password as a secret for production
+      - name: Store Grafana admin password as secret for production
+        if: github.ref == 'refs/heads/master'
+        run: echo "${{ steps.get_password_production.outputs.password_production }}" | az keyvault secret set --vault-name newtodovaultformyapp  --name GrafanaAdminPassword_for_production --value -
+
+      # Store the password as a secret for testingnamespace
+      - name: Store Grafana admin password as secret for testingnamespace
+        if: github.ref == 'refs/heads/testing'
+        run: echo "${{ steps.get_password_testingnamespace.outputs.password_testingnamespace }}" | az keyvault secret set --vault-name newtodovaultformyapp  --name GrafanaAdminPassword_for_testingnamespace --value -
+
+      # Update Grafana deployment with the password as an environment variable
+      # Update Grafana deployment for production
+      - name: Update Grafana deployment for production
+        if: github.ref == 'refs/heads/master'
+        run: |
+          PASSWORD=$(echo "${{ steps.get_password_production.outputs.password_production }}" | base64)
+          sed -i "s|{{GRAFANA_PASSWORD}}|${PASSWORD}|g" grafana-service-production.yaml || true
+          kubectl apply -f grafana-service-production.yaml || true
+          kubectl get svc
+
+      # Update Grafana deployment for testingnamespace
+      - name: Update Grafana deployment for testingnamespace
+        if: github.ref == 'refs/heads/testing'
+        run: |
+          PASSWORD=$(echo "${{ steps.get_password_testingnamespace.outputs.password_testingnamespace }}" | base64)
+          sed -i "s|{{GRAFANA_PASSWORD}}|${PASSWORD}|g" grafana-service-testingnamespace.yaml || true
+          kubectl apply -f grafana-service-testingnamespace.yaml || true
+          kubectl get svc
+
+      # Cleanup: Remove the password from the output
+      - name: Cleanup password from logs
+        run: echo "::remove-output name=password"
