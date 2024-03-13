@@ -230,3 +230,19 @@ jobs:
           sleep 120 # Wait for 2 minutes
           echo "Fetching Ingress details..."
           kubectl get ingress -n testingnamespace
+
+      - name: Determine branch and set output as reference for monitoring workflow
+        id: determine_trigger
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/master" ]; then
+            echo "::set-output name=trigger_reason::master"
+          elif [ "${{ github.ref }}" == "refs/heads/testing" ]; then
+            echo "::set-output name=trigger_reason::testing"
+          else
+            echo "::set-output name=trigger_reason::unknown"
+          fi
+
+        # Other steps omitted for brevity
+
+    outputs:
+      branch: ${{ steps.determine_trigger.outputs.trigger_reason }}
