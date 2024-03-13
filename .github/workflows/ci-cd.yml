@@ -154,7 +154,7 @@ jobs:
           MONGO_BASE64: ${{ secrets.MONGO_BASE64 }}
         run: |
           cd kubernetes_manifests
-          kubectl create namespace -n 3tierapp || true
+          kubectl create namespace 3tierapp || true
           helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx || true
           # Install the Nginx Ingress controller with specified configurations
           helm install nginx-ingress ingress-nginx/ingress-nginx \ || true
@@ -180,7 +180,7 @@ jobs:
           MONGO_BASE64: ${{ secrets.MONGO_BASE64 }}
         run: |
           cd kubernetes_manifests || true
-          kubectl create namespace -n testingnamespace || true
+          kubectl create namespace testingnamespace || true
           helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx || true
           # Install the Nginx Ingress controller with specified configurations
           helm install nginx-ingress ingress-nginx/ingress-nginx \ || true
