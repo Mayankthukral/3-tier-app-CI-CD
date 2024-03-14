@@ -16,3 +16,5 @@ spec:
       port: 443
       targetPort: 3000
   type: LoadBalancer
+
+  D:\abcd\3-tier-app-CI-CD-\kubernetes_manifests\grafana-service-production copy.yam
