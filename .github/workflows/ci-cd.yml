@@ -128,7 +128,7 @@ jobs:
 
       - name: Terraform Init
         id: init
-        run: cd testing/ && terraform init
+        run: cd testing && terraform init
 
       - name: Terraform Validate
         id: validate
