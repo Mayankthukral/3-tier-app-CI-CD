@@ -128,7 +128,10 @@ jobs:
 
       - name: Terraform Init
         id: init
-        run: cd testing && terraform init
+        run: |
+          pwd
+          ls -l
+          cd testing && terraform init
 
       - name: Terraform Validate
         id: validate
@@ -263,7 +266,7 @@ jobs:
 
       - name: Terraform Init
         id: init
-        run: terraform init -chdir=production/
+        run: cd production && terraform init
 
       - name: Terraform Validate
         id: validate
