@@ -339,7 +339,16 @@ jobs:
           sleep 240 # Wait for 4 minutes
           echo "Fetching Ingress details..."
           kubectl get ingress -n productionnamespace
-          kubectl get svc
+          kubectl get svc -n productionnamespace
+
+      - name: Get Ingress IP of testing
+        if: github.ref == 'refs/heads/testing'
+        run: |
+          echo "Waiting for Ingress to be ready..."
+          sleep 240 # Wait for 4 minutes
+          echo "Fetching Ingress details..."
+          kubectl get ingress -n testingnamespace
+          kubectl get svc -n testingnamespace
 
       # Cleanup: Remove the password from the output
       - name: Cleanup password from logs
