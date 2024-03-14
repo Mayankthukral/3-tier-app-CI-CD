@@ -24,7 +24,7 @@ terraform {
 		organization = "MAYANK-THUKRAL"
 
 		workspaces {
-			name = "TO-DO"
+			name = "TO-DO-testingcluster"
 		}
 	}
 }
