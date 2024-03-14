@@ -121,11 +121,11 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./testing
+        working-directory: /home/runner/work/3-tier-app-CI-CD/testing
 
     steps:
       - name: list all
-        run: ls -la ./testing
+        run: ls -la
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2.0.2
