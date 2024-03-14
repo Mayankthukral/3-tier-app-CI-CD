@@ -309,12 +309,12 @@ jobs:
       # Store the password as a secret for production
       - name: Store Grafana admin password as secret for production
         if: github.ref == 'refs/heads/master'
-        run: echo "${{ steps.get_password_production.outputs.password_production }}" | az keyvault secret set --vault-name newtodovaultformyapp  --name GrafanaAdminPassword_for_production --value -
+        run: echo "${{ steps.get_password_production.outputs.password_production }}" | az keyvault secret set --vault-name todovaultformyapplatest--name GrafanaAdminPassword_for_production --value - || true
 
       # Store the password as a secret for testingnamespace
       - name: Store Grafana admin password as secret for testingnamespace
         if: github.ref == 'refs/heads/testing'
-        run: echo "${{ steps.get_password_testingnamespace.outputs.password_testingnamespace }}" | az keyvault secret set --vault-name newtodovaultformyapp  --name GrafanaAdminPassword_for_testingnamespace --value -
+        run: echo "${{ steps.get_password_testingnamespace.outputs.password_testingnamespace }}" | az keyvault secret set --vault-name todovaultformyapplatest  --name GrafanaAdminPassword_for_testingnamespace --value - || true
 
       - name: Update Grafana deployment for production
         if: github.ref == 'refs/heads/master'
