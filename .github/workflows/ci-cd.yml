@@ -124,10 +124,6 @@ jobs:
         working-directory: ./testing
 
     steps:
-      - name: getting the path
-        run: |
-          echo "Workspace Directory: ${{ github.workspace }}/3-tier-app-CI-CD/testing"
-
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2.0.2
         with:
