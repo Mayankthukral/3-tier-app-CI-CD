@@ -124,6 +124,9 @@ jobs:
         working-directory: ./testing
 
     steps:
+      - name: list all
+        run: ls -la ./testing
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2.0.2
         with:
