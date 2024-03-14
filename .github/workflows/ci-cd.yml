@@ -129,7 +129,7 @@ jobs:
 
       - name: Terraform Init
         id: init
-        run: cd 3-tier-app-CI-CD/testing/ && terraform init
+        run: cd 3-tier-app-CI-CD/testing && terraform init
 
       - name: Terraform Validate
         id: validate
