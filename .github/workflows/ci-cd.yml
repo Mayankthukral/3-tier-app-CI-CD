@@ -119,11 +119,9 @@ jobs:
   testing_env:
     if: github.ref == 'refs/heads/testing'
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: $GITHUB_WORKSPACE/testing
-
     steps:
+      - name: shell
+        run: echo  ${{ github.workspace }} ${{ runner.temp }}
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2.0.2
         with:
