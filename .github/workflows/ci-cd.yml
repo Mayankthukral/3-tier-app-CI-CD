@@ -154,11 +154,11 @@ jobs:
           MONGO_BASE64: ${{ secrets.MONGO_BASE64 }}
         run: |
           cd kubernetes_manifests
-          kubectl create namespace 3tierapp || true
+          kubectl create namespace productionnamespace || true
           helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx || true
           # Install the Nginx Ingress controller with specified configurations
           helm install nginx-ingress ingress-nginx/ingress-nginx \ || true
-            --namespace 3tierapp  \ || true
+            --namespace productionnamespace  \ || true
             --set controller.replicaCount=2 \  || true
             --set controller.nodeSelector."beta\.kubernetes\.io/os"=linux \ || true
             --set defaultBackend.nodeSelector."beta\.kubernetes\.io/os"=linux || true
@@ -171,7 +171,7 @@ jobs:
           type: Opaque
           data:
             mongo-uri: $MONGO_BASE64
-          " | kubectl apply -f - -n 3tierapp  || true
+          " | kubectl apply -f - -n productionnamespace  || true
           set -x
 
       - name: Install Nginx Ingress Controller
@@ -212,40 +212,135 @@ jobs:
         if: github.ref == 'refs/heads/master'
         run: |
           cd kubernetes_manifests
-          kubectl apply -f backend.yaml --namespace 3tierapp  || true
-          kubectl apply -f frontend.yaml --namespace 3tierapp  || true
-          kubectl apply -f ingress.yaml --namespace 3tierapp  || true
+          kubectl apply -f backend.yaml --namespace productionnamespace  || true
+          kubectl apply -f frontend.yaml --namespace productionnamespace  || true
+          kubectl apply -f ingress.yaml --namespace productionnamespace  || true
+
+      - name: Check if Prometheus is already installed in production
+        if: github.ref == 'refs/heads/master'
+        id: check_prometheus_production
+        run: |
+          if kubectl get deployment prometheus-server -n productionnamespace  &>/dev/null; then
+            echo "Prometheus is already installed."
+            echo "::set-output name=prometheus_installed::true"
+          else
+            echo "Prometheus is not installed."
+            echo "::set-output name=prometheus_installed::false"
+          fi
+
+      - name: Add Prometheus Helm repository and install if not already installed
+        if: github.ref == 'refs/heads/master' && steps.check_prometheus_production.outputs.prometheus_installed != 'true'
+        run: |
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts -n productionnamespace
+          helm repo update -n productionnamespace
+          helm install prometheus prometheus-community/prometheus -n productionnamespace
+          kubectl expose service prometheus-server --type=LoadBalancer --target-port=9090 --name=prometheus-server-ext -n productionnamespace
+
+      - name: Check if Prometheus is already installed in testingnamespace
+        if: github.ref == 'refs/heads/testing'
+        id: check_prometheus_in_testingnamespace
+        run: |
+          if kubectl get deployment prometheus-server -n testingnamespace  &>/dev/null; then
+            echo "Prometheus is already installed."
+            echo "::set-output name=prometheus_installed::true"
+          else
+            echo "Prometheus is not installed."
+            echo "::set-output name=prometheus_installed::false"
+          fi
+
+      - name: Add Prometheus Helm repository and install if not already installed
+        if: github.ref == 'refs/heads/testing' && steps.check_prometheus_in_testingnamespace.outputs.prometheus_installed != 'true'
+        run: |
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts -n testingnamespace
+          helm repo update -n testingnamespace
+          helm install prometheus prometheus-community/prometheus -n testingnamespace
+          kubectl expose service prometheus-server --type=LoadBalancer --target-port=9090 --name=prometheus-server-ext -n testingnamespace
+
+      - name: Check if Grafana is already installed in production
+        if: github.ref == 'refs/heads/master'
+        id: check_grafana_production
+        run: |
+          if kubectl get deployment grafana -n productionnamespace &>/dev/null; then
+            echo "Grafana is already installed."
+            echo "::set-output name=grafana_installed::true"
+          else
+            echo "Grafana is not installed."
+            echo "::set-output name=grafana_installed::false"
+          fi
+
+      - name: Add Grafana Helm repository and install if not already installed in production
+        if: github.ref == 'refs/heads/master' && steps.check_grafana_production.outputs.grafana_installed != 'true'
+        run: |
+          helm repo add grafana https://grafana.github.io/helm-charts -n production
+          helm repo update -n productionnamespace
+          helm install grafana grafana/grafana -n productionnamespace
+          kubectl expose service grafana — type=Loadbalanacer — target-port=3000 — name=grafana-ext || true -n productionnamespace
+
+      - name: Check if Grafana is already installed in testingnamespace
+        if: github.ref == 'refs/heads/testing'
+        id: check_grafana
+        run: |
+          if kubectl get deployment grafana -n testingnamespace  &>/dev/null; then
+            echo "Grafana is already installed."
+            echo "::set-output name=grafana_installed::true"
+          else
+            echo "Grafana is not installed."
+            echo "::set-output name=grafana_installed::false"
+          fi
+
+      - name: Add Grafana Helm repository and install if not already installed in testingnamespace
+        if: github.ref == 'refs/heads/testing' && steps.check_grafana.outputs.grafana_installed != 'true'
+        run: |
+          helm repo add grafana https://grafana.github.io/helm-charts -n testingnamespace
+          helm repo update -n testingnamespace
+          helm install grafana grafana/grafana -n testingnamespace
+          kubectl expose service grafana — type=Loadbalanacer — target-port=3000 — name=grafana-ext || true -n testingnamespace
+
+      - name: Get Grafana admin password in production
+        if: github.ref == 'refs/heads/master'
+        id: get_password_production
+        run: echo "::set-output name=password_production::$(kubectl get secret -n productionnamespace -o jsonpath="{.data.admin-password}" | base64 --decode)"
+
+      - name: Get Grafana admin password in testingnamespace
+        if: github.ref == 'refs/heads/testing'
+        id: get_password_testingnamespace
+        run: echo "::set-output name=password_testingnamespace::$(kubectl get secret -n testingnamespace -o jsonpath="{.data.admin-password}" | base64 --decode)"
+
+      # Store the password as a secret for production
+      - name: Store Grafana admin password as secret for production
+        if: github.ref == 'refs/heads/master'
+        run: echo "${{ steps.get_password_production.outputs.password_production }}" | az keyvault secret set --vault-name newtodovaultformyapp  --name GrafanaAdminPassword_for_production --value -
+
+      # Store the password as a secret for testingnamespace
+      - name: Store Grafana admin password as secret for testingnamespace
+        if: github.ref == 'refs/heads/testing'
+        run: echo "${{ steps.get_password_testingnamespace.outputs.password_testingnamespace }}" | az keyvault secret set --vault-name newtodovaultformyapp  --name GrafanaAdminPassword_for_testingnamespace --value -
+
+      - name: Update Grafana deployment for production
+        if: github.ref == 'refs/heads/master'
+        run: |
+          PASSWORD=$(echo "${{ steps.get_password_production.outputs.password_production }}" | base64)
+          sed -i "s|{{GRAFANA_PASSWORD}}|${PASSWORD}|g" grafana-service-production.yaml || true
+          kubectl apply -f grafana-service-production.yaml -n productionnamespace.yaml || true
+          kubectl get svc
+
+      # Update Grafana deployment for testingnamespace
+      - name: Update Grafana deployment for testingnamespace
+        if: github.ref == 'refs/heads/testing'
+        run: |
+          PASSWORD=$(echo "${{ steps.get_password_testingnamespace.outputs.password_testingnamespace }}" | base64)
+          sed -i "s|{{GRAFANA_PASSWORD}}|${PASSWORD}|g" grafana-service-testing.yaml || true
+          kubectl apply -f grafana-service-testing.yaml -n testingnamespace.yaml || true
 
       - name: Get Ingress IP of production
         if: github.ref == 'refs/heads/master'
         run: |
           echo "Waiting for Ingress to be ready..."
-          sleep 120 # Wait for 2 minutes
+          sleep 240 # Wait for 4 minutes
           echo "Fetching Ingress details..."
-          kubectl get ingress -n 3tierapp
+          kubectl get ingress -n productionnamespace
+          kubectl get svc
 
-      - name: Get Ingress IP of testing
-        run: |
-          echo "Waiting for Ingress to be ready..."
-          sleep 120 # Wait for 2 minutes
-          echo "Fetching Ingress details..."
-          kubectl get ingress -n testingnamespace
-
-      - name: Determine branch and set output as reference for monitoring workflow
-        id: determine_trigger
-        run: |
-          if [ "${{ github.ref }}" == "refs/heads/master" ]; then
-            echo "::set-output name=trigger_reason::master"
-          elif [ "${{ github.ref }}" == "refs/heads/testing" ]; then
-            echo "::set-output name=trigger_reason::testing"
-          else
-            echo "::set-output name=trigger_reason::unknown"
-
-            fi
-
-      - name: Print Trigger Reason
-        run: |
-          echo "Trigger Reason: ${{ steps.determine_trigger.outputs.trigger_reason }}"
-
-    outputs:
-      branch: ${{ steps.determine_trigger.outputs.trigger_reason }}
+      # Cleanup: Remove the password from the output
+      - name: Cleanup password from logs
+        run: echo "::remove-output name=password"
