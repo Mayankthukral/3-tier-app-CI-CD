@@ -119,9 +119,9 @@ jobs:
   testing_env:
     if: github.ref == 'refs/heads/testing'
     runs-on: ubuntu-latest
-    # defaults:
-    #run:
-    #working-directory: ${{ github.workspace }}/testing
+    defaults:
+      run:
+        working-directory: ./testing
 
     steps:
       - name: getting the path
