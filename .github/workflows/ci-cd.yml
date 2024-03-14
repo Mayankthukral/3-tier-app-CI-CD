@@ -117,12 +117,11 @@ jobs:
           sudo mv kubectl /usr/local/bin/
 
   testing_env:
-    needs: build
     if: github.ref == 'refs/heads/testing'
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: /testing
+        working-directory: ./testing
 
     steps:
       - name: Setup Terraform
