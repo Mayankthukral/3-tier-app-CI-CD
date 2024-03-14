@@ -121,6 +121,9 @@ jobs:
     if: github.ref == 'refs/heads/testing'
     runs-on: ubuntu-latest
     steps:
+      - name:
+        run: cd testing
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2.0.2
         with:
@@ -129,7 +132,7 @@ jobs:
 
       - name: Terraform Init
         id: init
-        run: cd 3-tier-app-CI-CD/testing && terraform init
+        run: terraform init
 
       - name: Terraform Validate
         id: validate
