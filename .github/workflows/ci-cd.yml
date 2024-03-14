@@ -322,7 +322,7 @@ jobs:
           cd kubernetes_manifests 
           PASSWORD=$(echo "${{ steps.get_password_production.outputs.password_production }}" | base64)
           sed -i "s|{{GRAFANA_PASSWORD}}|${PASSWORD}|g" grafana-service-production.yaml || true
-          kubectl apply -f grafana-service-production.yaml -n productionnamespace.yaml || true
+          kubectl apply -f grafana-service-production.yaml -n productionnamespace || true
           kubectl get svc
 
       # Update Grafana deployment for testingnamespace
@@ -332,7 +332,7 @@ jobs:
           cd kubernetes_manifests
           PASSWORD=$(echo "${{ steps.get_password_testingnamespace.outputs.password_testingnamespace }}" | base64)
           sed -i "s|{{GRAFANA_PASSWORD}}|${PASSWORD}|g" grafana-service-testing.yaml || true
-          kubectl apply -f grafana-service-testing.yaml -n testingnamespace.yaml || true
+          kubectl apply -f grafana-service-testing.yaml -n testingnamespace || true
 
       - name: Get Ingress IP of production
         if: github.ref == 'refs/heads/master'
