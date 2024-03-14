@@ -274,7 +274,7 @@ jobs:
           helm repo add grafana https://grafana.github.io/helm-charts -n production
           helm repo update -n productionnamespace
           helm install grafana grafana/grafana -n productionnamespace
-          kubectl expose service grafana — type=Loadbalanacer — target-port=3000 — name=grafana-ext || true -n productionnamespace
+          kubectl expose service grafana --type=LoadBalancer --target-port=3000 --name=grafana-ext --namespace=productionnamespace || true
 
       - name: Check if Grafana is already installed in testingnamespace
         if: github.ref == 'refs/heads/testing'
@@ -294,7 +294,7 @@ jobs:
           helm repo add grafana https://grafana.github.io/helm-charts -n testingnamespace
           helm repo update -n testingnamespace
           helm install grafana grafana/grafana -n testingnamespace
-          kubectl expose service grafana — type=Loadbalanacer — target-port=3000 — name=grafana-ext || true -n testingnamespace
+          kubectl expose service grafana --type=LoadBalancer --target-port=3000 --name=grafana-ext --namespace=testingnamespace || true
 
       - name: Get Grafana admin password in production
         if: github.ref == 'refs/heads/master'
@@ -309,12 +309,12 @@ jobs:
       # Store the password as a secret for production
       - name: Store Grafana admin password as secret for production
         if: github.ref == 'refs/heads/master'
-        run: echo "${{ steps.get_password_production.outputs.password_production }}" | az keyvault secret set --vault-name todovaultformyapplatest--name GrafanaAdminPassword_for_production --value - || true
+        run: echo "${{ steps.get_password_production.outputs.password_production }}" | az keyvault secret set --vault-name todovaultformyapplatest--name grafana-admin-password-production --value - || true
 
       # Store the password as a secret for testingnamespace
       - name: Store Grafana admin password as secret for testingnamespace
         if: github.ref == 'refs/heads/testing'
-        run: echo "${{ steps.get_password_testingnamespace.outputs.password_testingnamespace }}" | az keyvault secret set --vault-name todovaultformyapplatest  --name GrafanaAdminPassword_for_testingnamespace --value - || true
+        run: echo "${{ steps.get_password_testingnamespace.outputs.password_testingnamespace }}" | az keyvault secret set --vault-name todovaultformyapplatest  --name grafana-admin-password-testing --value - || true
 
       - name: Update Grafana deployment for production
         if: github.ref == 'refs/heads/master'
