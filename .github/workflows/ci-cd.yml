@@ -120,13 +120,12 @@ jobs:
     if: github.ref == 'refs/heads/testing'
     runs-on: ubuntu-latest
     # defaults:
-      #run:
-        #working-directory: ${{ github.workspace }}/testing
- 
+    #run:
+    #working-directory: ${{ github.workspace }}/testing
+
     steps:
-      
-      - name : getting the path 
-        run : |
+      - name: getting the path
+        run: |
           echo "Workspace Directory: ${{ github.workspace }}/3-tier-app-CI-CD/testing"
 
       - name: Setup Terraform
@@ -134,7 +133,7 @@ jobs:
         with:
           terraform_version: latest
           cli_config_credentials_token: ${{ secrets.TFC_TOKEN_ID_testingcluster }}
-       working-directory: ${{ github.workspace }}/3-tier-app-CI-CD/testing
+
       - name: Terraform Init
         id: init
         run: terraform init
