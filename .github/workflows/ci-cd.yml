@@ -124,7 +124,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          sparse-checkout: "testing"
+          sparse-checkout: 'testing'
 
       - name: list all
         run: |
