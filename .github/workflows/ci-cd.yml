@@ -121,10 +121,10 @@ jobs:
     runs-on: [self-hosted, azurevm]
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          sparse-checkout: 'testing'
+
+      - name: Checkout subdirectory
+        run: |
+         git --work-tree=subdirectory checkout HEAD -- ./testing
 
       - name: list all
         run: |
