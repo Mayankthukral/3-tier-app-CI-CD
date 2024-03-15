@@ -127,7 +127,9 @@ jobs:
           path: "$GITHUB_WORKSPACE/testing"
 
       - name: list all
-        run: ls -la
+        run: |
+          ls -la
+          pwd
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2.0.2
