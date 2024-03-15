@@ -120,8 +120,7 @@ jobs:
     if: github.ref == 'refs/heads/testing'
     runs-on: ubuntu-latest
     defaults:
-      run:
-        working-directory: ${{ github.workspace }}/testing
+      run: working-directory:${{ github.workspace }}
 
     steps:
       - name: list all
