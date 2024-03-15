@@ -121,7 +121,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: /home/runner/work/3-tier-app-CI-CD/testing
+        working-directory: ${{ github.workspace }}/3-tier-app-CI-CD/testing
 
     steps:
       - name: list all
