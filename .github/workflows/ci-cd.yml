@@ -121,7 +121,7 @@ jobs:
     runs-on: [self-hosted, azurevm]
     defaults:
       run:
-        working-directory: /3-tier-app-CI-CD/testing/testing
+        working-directory: /3-tier-app-CI-CD/testing
 
     steps:
       - name: list all
