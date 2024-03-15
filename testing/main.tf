@@ -1,11 +1,11 @@
 resource "azurerm_resource_group" "rg" {
   location = var.resource_group_location
-  name     = "my_resource_group" 
+  name     = "my_resource_group_testing" 
 }
 
 resource "azurerm_kubernetes_cluster" "k8s" {
   location            = azurerm_resource_group.rg.location
-  name                = "todoappcluster" 
+  name                = "todoappcluster_testing" 
   resource_group_name = azurerm_resource_group.rg.name
   dns_prefix          = "myresourcegoup-todoappcluster" 
 

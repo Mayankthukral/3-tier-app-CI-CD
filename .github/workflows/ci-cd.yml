@@ -18,15 +18,15 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4.1.1
+        uses: actions/checkout@v2
 
       - name: Setup Node.js environment
-        uses: actions/setup-node@v4.0.2
+        uses: actions/setup-node@v2
         with:
-          node-version: "20"
+          node-version: "14"
 
       - name: setup python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v2
         with:
           python-version: "3.10"
 
@@ -110,43 +110,254 @@ jobs:
         env:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+
+
+  testing_env:
+      if: github.ref == 'refs/heads/testing'
+      runs-on: [self-hosted, azurevm]
+      env:
+        TF_WORKING_DIR: ${{ github.workspace }}/testing
+      needs: build
+
+      steps:
+
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+
+      - name: setting node    
+        uses: actions/setup-node@v2
+        with: 
+            node-version: '14'
+
+
+      - name: list all
+        run: |
+         ls -la ${{ github.workspace }}
+
+      - name: Install unzip
+        run: |
+              sudo apt-get update
+              sudo apt-get install -y unzip
+
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2.0.2
+        uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: latest
-          cli_config_credentials_token: ${{ secrets.TFC_TOKEN_ID }}
+          terraform_wrapper: false
+          cli_config_credentials_token: ${{ secrets.TFC_TOKEN_ID_testingcluster }}
+      
       - name: Terraform Init
         id: init
         run: terraform init
+        working-directory: ${{ env.TF_WORKING_DIR }}
 
       - name: Terraform Validate
         id: validate
         run: terraform validate
+        working-directory: ${{ env.TF_WORKING_DIR }}
 
       - name: Terraform Plan
         id: plan
         run: terraform plan
         continue-on-error: true
+        working-directory: ${{ env.TF_WORKING_DIR }}
 
       - name: Terraform Plan Status
         if: steps.plan.outcome == 'failure'
         run: exit 1
+        working-directory: ${{ env.TF_WORKING_DIR }}
 
       - name: Terraform Apply
         run: terraform apply -auto-approve
+        working-directory: ${{ env.TF_WORKING_DIR }}
 
       - name: Terraform Output
         run: terraform output
+        working-directory: ${{ env.TF_WORKING_DIR }}
 
-      - name: Get kubeconfig from Azure
+      - name: "Az CLI login"
         run: |
-          az aks get-credentials --resource-group my_resource_group --name todoappcluster
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Get kubeconfig from Azure for testing cluster
+        run: |
+            kubectl config delete-cluster todoappcluster_testing || true
+            az aks get-credentials --resource-group my_resource_group_testing --name todoappcluster_testing --overwrite-existing
 
       - name: Install and set up kubectl
         run: |
           curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
           chmod +x kubectl
           sudo mv kubectl /usr/local/bin/
+
+      - name: Install Nginx Ingress Controller
+        run: |
+          cd kubernetes_manifests
+          kubectl create namespace testingnamespace || true
+          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx || true
+          # Install the Nginx Ingress controller with specified configurations
+          helm install nginx-ingress ingress-nginx/ingress-nginx \
+            --namespace testingnamespace \
+            --set controller.replicaCount=2 \
+            --set controller.nodeSelector."beta\.kubernetes\.io/os"=linux \
+            --set defaultBackend.nodeSelector."beta\.kubernetes\.io/os"=linux || true
+          set +x
+          echo "
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: mongodb-secret
+          type: Opaque
+          data:
+            mongo-uri: $MONGO_BASE64
+          " | kubectl apply -f - -n testingnamespace || true
+          set -x
+
+      - name: Apply Kubernetes deployment
+        if: github.ref == 'refs/heads/testing'
+        run: |
+          cd kubernetes_manifests
+          kubectl apply -f backend.yaml --namespace testingnamespace || true
+          kubectl apply -f frontend.yaml --namespace testingnamespace || true
+          kubectl apply -f ingress.yaml --namespace testingnamespace || true
+
+      - name: Install Helm
+        uses: Azure/setup-helm@v4
+        id : install
+
+      - name: Check if Prometheus is already installed in testingnamespace
+        if: github.ref == 'refs/heads/testing'
+        id: check_prometheus_in_testingnamespace
+        run: |
+          if kubectl get deployment prometheus-server -n testingnamespace &>/dev/null; then
+            echo "Prometheus is already installed."
+            echo "::set-output name=prometheus_installed::true"
+          else
+            echo "Prometheus is not installed."
+            echo "::set-output name=prometheus_installed::false"
+          fi
+
+      - name: Add Prometheus Helm repository and install if not already installed
+        if: github.ref == 'refs/heads/testing' && steps.check_prometheus_in_testingnamespace.outputs.prometheus_installed != 'true'
+        run: |
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts -n testingnamespace
+          helm repo update -n testingnamespace
+          helm install prometheus prometheus-community/prometheus -n testingnamespace 
+          kubectl expose service prometheus-server --type=LoadBalancer --target-port=9090 --name=prometheus-server-ext -n testingnamespace || true
+
+      - name: Check if Grafana is already installed in testingnamespace
+        if: github.ref == 'refs/heads/testing'
+        id: check_grafana
+        run: |
+          if kubectl get deployment grafana -n testingnamespace &>/dev/null; then
+            echo "Grafana is already installed."
+            echo "::set-output name=grafana_installed::true"
+          else
+            echo "Grafana is not installed."
+            echo "::set-output name=grafana_installed::false"
+          fi
+
+      - name: Add Grafana Helm repository and install if not already installed in testingnamespace
+        if: github.ref == 'refs/heads/testing' && steps.check_grafana.outputs.grafana_installed != 'true'
+        run: |
+          helm repo add grafana https://grafana.github.io/helm-charts -n testingnamespace 
+          helm repo update -n testingnamespace
+          helm install grafana grafana/grafana -n testingnamespace
+          kubectl expose service grafana --type=LoadBalancer --target-port=3000 --name=grafana-ext --namespace=testingnamespace || true
+
+      - name: Store Grafana admin password as secret for testingnamespace
+        if: github.ref == 'refs/heads/testing'
+        run: echo "${{ steps.get_password_testingnamespace.outputs.password_testingnamespace }}" | az keyvault secret set --vault-name todovaultformyapplatest --name grafana-admin-password-testing --value - || true
+
+      - name: Update Grafana deployment for testingnamespace
+        if: github.ref == 'refs/heads/testing'
+        run: |
+          cd kubernetes_manifests
+          PASSWORD=$(echo "${{ steps.get_password_testingnamespace.outputs.password_testingnamespace }}" | base64)
+          sed -i "s|{{GRAFANA_PASSWORD}}|${PASSWORD}|g" grafana-service-testing.yaml || true
+          kubectl apply -f grafana-service-testing.yaml -n testingnamespace || true
+
+      - name: Get Ingress IP of testing
+        if: github.ref == 'refs/heads/testing'
+        run: |
+          echo "Waiting for Ingress to be ready..."
+          sleep 240 # Wait for 4 minutes
+          echo "Fetching Ingress details..."
+          kubectl get ingress -n testingnamespace
+          kubectl get svc -n testingnamespace
+
+  production_env:
+    needs: build
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    env: 
+     TF_WORKING_DIR_production: ${{ github.workspace }}/production
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+
+      - name: setting node    
+        uses: actions/setup-node@v2
+        with: 
+            node-version: '14'      
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2.0.2
+        with:
+          terraform_version: latest
+          cli_config_credentials_token: ${{ secrets.TFC_TOKEN_ID_productioncluster }}
+
+      - name: Terraform Init
+        id: init
+        run: cd production && terraform init
+        working-directory: ${{ env.TF_WORKING_DIR_production }}
+
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate
+        working-directory: ${{ env.TF_WORKING_DIR_production }}
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan
+        continue-on-error: true
+        working-directory: ${{ env.TF_WORKING_DIR_production }}
+
+      - name: Terraform Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+        working-directory: ${{ env.TF_WORKING_DIR_production }}
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+        working-directory: ${{ env.TF_WORKING_DIR_production }}
+
+      - name: Terraform Output
+        run: terraform output # Correct any specific issues here
+        working-directory: ${{ env.TF_WORKING_DIR_production }}
+
+      - name: "Az CLI login"
+        run: |
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+     
+      - name: Install and set up kubectl
+        run: |
+            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+            chmod +x kubectl
+            sudo mv kubectl /usr/local/bin/
+            c
+      - name: Get kubeconfig from Azure for production cluster
+        run: |
+          kubectl config delete-cluster todoappcluster_testing || true
+            az aks get-credentials --resource-group my_resource_group_production --name todoappcluster_production --overwrite-existing
 
       - name: Install Nginx Ingress Controller
         if: github.ref == 'refs/heads/master'
@@ -156,11 +367,10 @@ jobs:
           cd kubernetes_manifests
           kubectl create namespace productionnamespace || true
           helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx || true
-          # Install the Nginx Ingress controller with specified configurations
-          helm install nginx-ingress ingress-nginx/ingress-nginx \ || true
-            --namespace productionnamespace  \ || true
-            --set controller.replicaCount=2 \  || true
-            --set controller.nodeSelector."beta\.kubernetes\.io/os"=linux \ || true
+          helm install nginx-ingress ingress-nginx/ingress-nginx \
+            --namespace productionnamespace \
+            --set controller.replicaCount=2 \
+            --set controller.nodeSelector."beta\.kubernetes\.io/os"=linux \
             --set defaultBackend.nodeSelector."beta\.kubernetes\.io/os"=linux || true
           set +x
           echo "
@@ -171,42 +381,12 @@ jobs:
           type: Opaque
           data:
             mongo-uri: $MONGO_BASE64
-          " | kubectl apply -f - -n productionnamespace  || true
+          " | kubectl apply -f - -n productionnamespace || true
           set -x
-
-      - name: Install Nginx Ingress Controller
-        if: github.ref == 'refs/heads/testing'
-        env:
-          MONGO_BASE64: ${{ secrets.MONGO_BASE64 }}
-        run: |
-          cd kubernetes_manifests || true
-          kubectl create namespace testingnamespace || true
-          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx || true
-          # Install the Nginx Ingress controller with specified configurations
-          helm install nginx-ingress ingress-nginx/ingress-nginx \ || true
-            --namespace testingnamespace  \ || true
-            --set controller.replicaCount=2 \  || true
-            --set controller.nodeSelector."beta\.kubernetes\.io/os"=linux \ || true
-            --set defaultBackend.nodeSelector."beta\.kubernetes\.io/os"=linux || true
-          set +x
-          echo "
-          apiVersion: v1
-          kind: Secret
-          metadata:
-            name: mongodb-secret
-          type: Opaque
-          data:
-            mongo-uri: $MONGO_BASE64
-          " | kubectl apply -f - -n testingnamespace   || true
-          set -x
-
-      - name: Apply Kubernetes deployment
-        if: github.ref == 'refs/heads/testing'
-        run: |
-          cd kubernetes_manifests
-          kubectl apply -f backend.yaml --namespace testingnamespace  || true
-          kubectl apply -f frontend.yaml --namespace testingnamespace  || true
-          kubectl apply -f ingress.yaml --namespace testingnamespace  || true
+      
+      - name: Install Helm
+        uses: Azure/setup-helm@v4
+        id : install
 
       - name: Apply Kubernetes deployment
         if: github.ref == 'refs/heads/master'
@@ -228,33 +408,13 @@ jobs:
             echo "::set-output name=prometheus_installed::false"
           fi
 
-      - name: Add Prometheus Helm repository and install if not already installed
+      - name: Add Prometheus Helm repository and install if not already installed in production
         if: github.ref == 'refs/heads/master' && steps.check_prometheus_production.outputs.prometheus_installed != 'true'
         run: |
           helm repo add prometheus-community https://prometheus-community.github.io/helm-charts -n productionnamespace
           helm repo update -n productionnamespace
           helm install prometheus prometheus-community/prometheus -n productionnamespace
           kubectl expose service prometheus-server --type=LoadBalancer --target-port=9090 --name=prometheus-server-ext -n productionnamespace
-
-      - name: Check if Prometheus is already installed in testingnamespace
-        if: github.ref == 'refs/heads/testing'
-        id: check_prometheus_in_testingnamespace
-        run: |
-          if kubectl get deployment prometheus-server -n testingnamespace  &>/dev/null; then
-            echo "Prometheus is already installed."
-            echo "::set-output name=prometheus_installed::true"
-          else
-            echo "Prometheus is not installed."
-            echo "::set-output name=prometheus_installed::false"
-          fi
-
-      - name: Add Prometheus Helm repository and install if not already installed
-        if: github.ref == 'refs/heads/testing' && steps.check_prometheus_in_testingnamespace.outputs.prometheus_installed != 'true'
-        run: |
-          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts -n testingnamespace
-          helm repo update -n testingnamespace
-          helm install prometheus prometheus-community/prometheus -n testingnamespace
-          kubectl expose service prometheus-server --type=LoadBalancer --target-port=9090 --name=prometheus-server-ext -n testingnamespace
 
       - name: Check if Grafana is already installed in production
         if: github.ref == 'refs/heads/master'
@@ -276,45 +436,10 @@ jobs:
           helm install grafana grafana/grafana -n productionnamespace
           kubectl expose service grafana --type=LoadBalancer --target-port=3000 --name=grafana-ext --namespace=productionnamespace || true
 
-      - name: Check if Grafana is already installed in testingnamespace
-        if: github.ref == 'refs/heads/testing'
-        id: check_grafana
-        run: |
-          if kubectl get deployment grafana -n testingnamespace  &>/dev/null; then
-            echo "Grafana is already installed."
-            echo "::set-output name=grafana_installed::true"
-          else
-            echo "Grafana is not installed."
-            echo "::set-output name=grafana_installed::false"
-          fi
-
-      - name: Add Grafana Helm repository and install if not already installed in testingnamespace
-        if: github.ref == 'refs/heads/testing' && steps.check_grafana.outputs.grafana_installed != 'true'
-        run: |
-          helm repo add grafana https://grafana.github.io/helm-charts -n testingnamespace
-          helm repo update -n testingnamespace
-          helm install grafana grafana/grafana -n testingnamespace
-          kubectl expose service grafana --type=LoadBalancer --target-port=3000 --name=grafana-ext --namespace=testingnamespace || true
-
       - name: Get Grafana admin password in production
         if: github.ref == 'refs/heads/master'
         id: get_password_production
         run: echo "::set-output name=password_production::$(kubectl get secret -n productionnamespace -o jsonpath="{.data.admin-password}" | base64 --decode)"
-
-      - name: Get Grafana admin password in testingnamespace
-        if: github.ref == 'refs/heads/testing'
-        id: get_password_testingnamespace
-        run: echo "::set-output name=password_testingnamespace::$(kubectl get secret -n testingnamespace -o jsonpath="{.data.admin-password}" | base64 --decode)"
-
-      # Store the password as a secret for production
-      - name: Store Grafana admin password as secret for production
-        if: github.ref == 'refs/heads/master'
-        run: echo "${{ steps.get_password_production.outputs.password_production }}" | az keyvault secret set --vault-name todovaultformyapplatest--name grafana-admin-password-production --value - || true
-
-      # Store the password as a secret for testingnamespace
-      - name: Store Grafana admin password as secret for testingnamespace
-        if: github.ref == 'refs/heads/testing'
-        run: echo "${{ steps.get_password_testingnamespace.outputs.password_testingnamespace }}" | az keyvault secret set --vault-name todovaultformyapplatest  --name grafana-admin-password-testing --value - || true
 
       - name: Update Grafana deployment for production
         if: github.ref == 'refs/heads/master'
@@ -325,15 +450,6 @@ jobs:
           kubectl apply -f grafana-service-production.yaml -n productionnamespace || true
           kubectl get svc
 
-      # Update Grafana deployment for testingnamespace
-      - name: Update Grafana deployment for testingnamespace
-        if: github.ref == 'refs/heads/testing'
-        run: |
-          cd kubernetes_manifests
-          PASSWORD=$(echo "${{ steps.get_password_testingnamespace.outputs.password_testingnamespace }}" | base64)
-          sed -i "s|{{GRAFANA_PASSWORD}}|${PASSWORD}|g" grafana-service-testing.yaml || true
-          kubectl apply -f grafana-service-testing.yaml -n testingnamespace || true
-
       - name: Get Ingress IP of production
         if: github.ref == 'refs/heads/master'
         run: |
@@ -342,15 +458,6 @@ jobs:
           echo "Fetching Ingress details..."
           kubectl get ingress -n productionnamespace
           kubectl get svc -n productionnamespace
-
-      - name: Get Ingress IP of testing
-        if: github.ref == 'refs/heads/testing'
-        run: |
-          echo "Waiting for Ingress to be ready..."
-          sleep 240 # Wait for 4 minutes
-          echo "Fetching Ingress details..."
-          kubectl get ingress -n testingnamespace
-          kubectl get svc -n testingnamespace
 
       # Cleanup: Remove the password from the output
       - name: Cleanup password from logs
