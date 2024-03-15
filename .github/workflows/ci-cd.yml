@@ -150,7 +150,7 @@ jobs:
       - name: Terraform Validate
         id: validate
         run: terraform validate
-        working-directory: ./testing
+        working-directory: testing
 
       - name: Terraform Plan
         id: plan
