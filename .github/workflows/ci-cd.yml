@@ -314,7 +314,7 @@ jobs:
 
       - name: Terraform Init
         id: init
-        run: cd production && terraform init
+        run: terraform init
         working-directory: ${{ env.TF_WORKING_DIR_production }}
 
       - name: Terraform Validate
@@ -353,7 +353,7 @@ jobs:
             curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
             chmod +x kubectl
             sudo mv kubectl /usr/local/bin/
-            c
+            
       - name: Get kubeconfig from Azure for production cluster
         run: |
           kubectl config delete-cluster todoappcluster_testing || true
