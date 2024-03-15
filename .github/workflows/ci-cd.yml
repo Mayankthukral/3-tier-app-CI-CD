@@ -122,16 +122,7 @@ jobs:
 
       steps:
 
-      - name: Checkout subdirectory
-        run: |
-            if [ ! -d "3-tier-app-CI-CD" ]; then
-              git clone --filter=blob:none --no-checkout https://github.com/mayank91091/3-tier-app-CI-CD.git
-              cd 3-tier-app-CI-CD
-              git sparse-checkout init --cone
-              git sparse-checkout set testing
-            else
-              echo "Directory '3-tier-app-CI-CD' already exists."
-            fi
+
 
       - name: list all
         run: |
@@ -149,25 +140,31 @@ jobs:
       - name: Terraform Init
         id: init
         run: terraform init
+        working-directory: ./testing
 
       - name: Terraform Validate
         id: validate
         run: terraform validate
+        working-directory: ./testing
 
       - name: Terraform Plan
         id: plan
         run: terraform plan
         continue-on-error: true
+        working-directory: ./testing
 
       - name: Terraform Plan Status
         if: steps.plan.outcome == 'failure'
         run: exit 1
+        working-directory: ./testing
 
       - name: Terraform Apply
         run: terraform apply -auto-approve
+        working-directory: ./testing
 
       - name: Terraform Output
         run: terraform output
+        working-directory: ./testing
 
       - name: Get kubeconfig from Azure for testing cluster
         run: |
