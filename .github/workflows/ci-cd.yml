@@ -224,6 +224,10 @@ jobs:
           kubectl apply -f frontend.yaml --namespace testingnamespace || true
           kubectl apply -f ingress.yaml --namespace testingnamespace || true
 
+      - name: Install Helm
+        uses: Azure/setup-helm@v4
+        id : install
+
       - name: Check if Prometheus is already installed in testingnamespace
         if: github.ref == 'refs/heads/testing'
         id: check_prometheus_in_testingnamespace
@@ -379,6 +383,10 @@ jobs:
             mongo-uri: $MONGO_BASE64
           " | kubectl apply -f - -n productionnamespace || true
           set -x
+      
+      - name: Install Helm
+        uses: Azure/setup-helm@v4
+        id : install
 
       - name: Apply Kubernetes deployment
         if: github.ref == 'refs/heads/master'
