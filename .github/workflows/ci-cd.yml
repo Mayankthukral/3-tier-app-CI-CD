@@ -125,7 +125,7 @@ jobs:
       - name: Checkout subdirectory
         run: |
          mkdir subdirectory 
-         git --work-tree=subdirectory checkout HEAD -- ./testing
+         git --work-tree=subdirectory checkout HEAD -- testing
 
       - name: list all
         run: |
