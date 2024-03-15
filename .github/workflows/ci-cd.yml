@@ -124,10 +124,14 @@ jobs:
 
       - name: Checkout subdirectory
         run: |
-            git clone --filter=blob:none --no-checkout https://github.com/mayank91091/3-tier-app-CI-CD.git
-            cd 3-tier-app-CI-CD
-            git sparse-checkout init --cone
-            git sparse-checkout set testing
+            if [ ! -d "3-tier-app-CI-CD" ]; then
+              git clone --filter=blob:none --no-checkout https://github.com/mayank91091/3-tier-app-CI-CD.git
+              cd 3-tier-app-CI-CD
+              git sparse-checkout init --cone
+              git sparse-checkout set testing
+            else
+              echo "Directory '3-tier-app-CI-CD' already exists."
+            fi
 
       - name: list all
         run: |
