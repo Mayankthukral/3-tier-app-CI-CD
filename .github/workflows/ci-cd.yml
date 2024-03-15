@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4.1.1
+        uses: actions/checkout@v2
 
       - name: Setup Node.js environment
         uses: actions/setup-node@v4.0.2
@@ -119,16 +119,15 @@ jobs:
   testing_env:
     if: github.ref == 'refs/heads/testing'
     runs-on: [self-hosted, azurevm]
-    defaults:
-      run:
-        working-directory: /3-tier-app-CI-CD/testing
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          path: "3-tier-app-CI-CD/testing"
+
       - name: list all
         run: ls -la
-
-      - name:
-        run: echo ${{ github.workspace}}
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2.0.2
