@@ -124,7 +124,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
         with:
-          path: "3-tier-app-CI-CD/testing"
+          path: "$GITHUB_WORKSPACE/testing"
 
       - name: list all
         run: ls -la
