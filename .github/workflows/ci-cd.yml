@@ -118,10 +118,7 @@ jobs:
 
   testing_env:
     if: github.ref == 'refs/heads/testing'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: cd ../testing
+    runs-on: [self-hosted, azurevm]
 
     steps:
       - name: list all
