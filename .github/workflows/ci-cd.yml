@@ -134,6 +134,7 @@ jobs:
         with:
             terraform_version: latest
             cli_config_credentials_token: ${{ secrets.TFC_TOKEN_ID_testingcluster }}
+            working-directory: ./testing
 
         
 
