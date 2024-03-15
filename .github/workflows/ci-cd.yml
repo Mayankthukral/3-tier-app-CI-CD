@@ -117,29 +117,30 @@ jobs:
           sudo mv kubectl /usr/local/bin/
 
   testing_env:
-    if: github.ref == 'refs/heads/testing'
-    runs-on: [self-hosted, azurevm]
+      if: github.ref == 'refs/heads/testing'
+      runs-on: [self-hosted, azurevm]
 
-    steps:
+      steps:
 
       - name: Checkout subdirectory
         run: |
-           git clone --filter=blob:none --no-checkout https://github.com/mayank91091/3-tier-app-CI-CD.git
-
-           git sparse-checkout init--cone
-           git sparse-checkout set testing
-
+            git clone --filter=blob:none --no-checkout https://github.com/mayank91091/3-tier-app-CI-CD.git
+            cd 3-tier-app-CI-CD
+            git sparse-checkout init --cone
+            git sparse-checkout set testing
 
       - name: list all
         run: |
-          ls -la
-          pwd
+            ls -la
+            pwd
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2.0.2
         with:
-          terraform_version: latest
-          cli_config_credentials_token: ${{ secrets.TFC_TOKEN_ID_testingcluster }}
+            terraform_version: latest
+            cli_config_credentials_token: ${{ secrets.TFC_TOKEN_ID_testingcluster }}
+
+        
 
       - name: Terraform Init
         id: init
@@ -180,10 +181,10 @@ jobs:
           kubectl create namespace testingnamespace || true
           helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx || true
           # Install the Nginx Ingress controller with specified configurations
-          helm install nginx-ingress ingress-nginx/ingress-nginx \ || true
-            --namespace testingnamespace \ ||true
-            --set controller.replicaCount=2 \ || true
-            --set controller.nodeSelector."beta\.kubernetes\.io/os"=linux \ || true
+          helm install nginx-ingress ingress-nginx/ingress-nginx \
+            --namespace testingnamespace \
+            --set controller.replicaCount=2 \
+            --set controller.nodeSelector."beta\.kubernetes\.io/os"=linux \
             --set defaultBackend.nodeSelector."beta\.kubernetes\.io/os"=linux || true
           set +x
           echo "
