@@ -125,7 +125,9 @@ jobs:
       steps:
 
 
-       
+      - name: Checkout
+        uses: actions/checkout@v3
+
 
       - name: setting node    
         uses: actions/setup-node@v2
@@ -143,14 +145,11 @@ jobs:
               sudo apt-get install -y unzip
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2.0.2
+        uses: hashicorp/setup-terraform@v2
         with:
-            terraform_version: latest
-            cli_config_credentials_token: ${{ secrets.TFC_TOKEN_ID_testingcluster }}
-            
-
-        
-
+          terraform_wrapper: false
+          cli_config_credentials_token: ${{ secrets.TFC_TOKEN_ID_testingcluster }}
+      
       - name: Terraform Init
         id: init
         run: terraform init
