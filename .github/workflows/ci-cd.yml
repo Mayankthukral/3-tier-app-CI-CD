@@ -185,7 +185,7 @@ jobs:
       - name: Get kubeconfig from Azure for testing cluster
         run: |
             kubectl config delete-cluster todoappcluster_testing || true
-            az aks get-credentials --resource-group my_resource_group_testing --name todoappcluster_testing
+            az aks get-credentials --resource-group my_resource_group_testing --name todoappcluster_testing --overwrite-existing
 
       - name: Install and set up kubectl
         run: |
@@ -349,11 +349,11 @@ jobs:
             curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
             chmod +x kubectl
             sudo mv kubectl /usr/local/bin/
-            
+            c
       - name: Get kubeconfig from Azure for production cluster
         run: |
-          kubectl config delete-clustertodoappcluster_production || true
-          az aks get-credentials --resource-group my_resource_group_production --name todoappcluster_production
+          kubectl config delete-cluster todoappcluster_testing || true
+            az aks get-credentials --resource-group my_resource_group_production --name todoappcluster_production --overwrite-existing
 
       - name: Install Nginx Ingress Controller
         if: github.ref == 'refs/heads/master'
