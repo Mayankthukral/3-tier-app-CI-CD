@@ -119,6 +119,8 @@ jobs:
   testing_env:
       if: github.ref == 'refs/heads/testing'
       runs-on: [self-hosted, azurevm]
+      env:
+        TF_WORKING_DIR: ${{ github.workspace }}/testing
 
       steps:
 
@@ -126,8 +128,8 @@ jobs:
 
       - name: list all
         run: |
-            ls -la
-            pwd
+         ls -la ${{ github.workspace }}
+
       - name: Install unzip
         run: |
               sudo apt-get update
@@ -145,12 +147,12 @@ jobs:
       - name: Terraform Init
         id: init
         run: terraform init
-        working-directory: testing
+        working-directory: ${{ env.TF_WORKING_DIR }}
 
       - name: Terraform Validate
         id: validate
         run: terraform validate
-        working-directory: testing
+        working-directory: ${{ env.TF_WORKING_DIR }}
 
       - name: Terraform Plan
         id: plan
