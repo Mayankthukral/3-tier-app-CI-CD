@@ -145,7 +145,7 @@ jobs:
       - name: Terraform Init
         id: init
         run: terraform init
-        working-directory: ./testing
+        working-directory: testing
 
       - name: Terraform Validate
         id: validate
@@ -156,12 +156,12 @@ jobs:
         id: plan
         run: terraform plan
         continue-on-error: true
-        working-directory: ./testing
+        working-directory: testing
 
       - name: Terraform Plan Status
         if: steps.plan.outcome == 'failure'
         run: exit 1
-        working-directory: ./testing
+        working-directory: testing
 
       - name: Terraform Apply
         run: terraform apply -auto-approve
