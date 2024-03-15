@@ -110,11 +110,7 @@ jobs:
         env:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Install and set up kubectl
-        run: |
-          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-          chmod +x kubectl
-          sudo mv kubectl /usr/local/bin/
+
 
   testing_env:
       if: github.ref == 'refs/heads/testing'
@@ -188,7 +184,8 @@ jobs:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       - name: Get kubeconfig from Azure for testing cluster
         run: |
-          az aks get-credentials --resource-group my_resource_group_testing --name todoappcluster_testing
+            kubectl config delete-cluster todoappcluster_testing || true
+            az aks get-credentials --resource-group my_resource_group_testing --name todoappcluster_testing
 
       - name: Install and set up kubectl
         run: |
@@ -346,9 +343,17 @@ jobs:
           az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
         env:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+     
+      - name: Install and set up kubectl
+        run: |
+            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+            chmod +x kubectl
+            sudo mv kubectl /usr/local/bin/
+            
       - name: Get kubeconfig from Azure for production cluster
         run: |
-          az aks get-credentials --resource-group todoappcluster_production --name todoappcluster_production
+          kubectl config delete-clustertodoappcluster_production || true
+          az aks get-credentials --resource-group my_resource_group_production --name todoappcluster_production
 
       - name: Install Nginx Ingress Controller
         if: github.ref == 'refs/heads/master'
