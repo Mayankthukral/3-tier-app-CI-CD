@@ -128,13 +128,17 @@ jobs:
         run: |
             ls -la
             pwd
+      - name: Install unzip
+        run: |
+              sudo apt-get update
+              sudo apt-get install -y unzip
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2.0.2
         with:
             terraform_version: latest
             cli_config_credentials_token: ${{ secrets.TFC_TOKEN_ID_testingcluster }}
-            working-directory: ./testing
+            
 
         
 
