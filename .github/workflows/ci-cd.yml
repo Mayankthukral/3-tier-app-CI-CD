@@ -314,7 +314,7 @@ jobs:
 
       - name: Terraform Init
         id: init
-        run: cd production && terraform init
+        run: terraform init
         working-directory: ${{ env.TF_WORKING_DIR_production }}
 
       - name: Terraform Validate
