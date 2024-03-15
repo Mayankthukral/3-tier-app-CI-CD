@@ -119,6 +119,9 @@ jobs:
   testing_env:
     if: github.ref == 'refs/heads/testing'
     runs-on: [self-hosted, azurevm]
+    defaults:
+      run:
+        working-directory: /3-tier-app-CI-CD/testing/testing
 
     steps:
       - name: list all
