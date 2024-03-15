@@ -124,8 +124,11 @@ jobs:
 
       - name: Checkout subdirectory
         run: |
-         mkdir subdirectory 
-         git --work-tree=subdirectory checkout HEAD -- testing
+           git clone --filter=blob:none --no-checkout https://github.com/mayank91091/3-tier-app-CI-CD.git
+           cd repo
+           git sparse-checkout init--cone
+           git sparse-checkout set testing
+
 
       - name: list all
         run: |
