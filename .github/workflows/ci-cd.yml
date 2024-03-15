@@ -121,6 +121,7 @@ jobs:
       runs-on: [self-hosted, azurevm]
       env:
         TF_WORKING_DIR: ${{ github.workspace }}/testing
+      needs: build
 
       steps:
 
@@ -164,20 +165,20 @@ jobs:
         id: plan
         run: terraform plan
         continue-on-error: true
-        working-directory: testing
+        working-directory: ${{ env.TF_WORKING_DIR }}
 
       - name: Terraform Plan Status
         if: steps.plan.outcome == 'failure'
         run: exit 1
-        working-directory: testing
+        working-directory: ${{ env.TF_WORKING_DIR }}
 
       - name: Terraform Apply
         run: terraform apply -auto-approve
-        working-directory: ./testing
+        working-directory: ${{ env.TF_WORKING_DIR }}
 
       - name: Terraform Output
         run: terraform output
-        working-directory: ./testing
+        working-directory: ${{ env.TF_WORKING_DIR }}
 
       - name: Get kubeconfig from Azure for testing cluster
         run: |
@@ -285,7 +286,18 @@ jobs:
     needs: build
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
+    TF_WORKING_DIR_production: ${{ github.workspace }}/production
     steps:
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+
+      - name: setting node    
+        uses: actions/setup-node@v2
+        with: 
+            node-version: '14'      
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2.0.2
         with:
@@ -295,25 +307,31 @@ jobs:
       - name: Terraform Init
         id: init
         run: cd production && terraform init
+        working-directory: ${{ env.TF_WORKING_DIR_production }}
 
       - name: Terraform Validate
         id: validate
         run: terraform validate
+        working-directory: ${{ env.TF_WORKING_DIR_production }}
 
       - name: Terraform Plan
         id: plan
         run: terraform plan
         continue-on-error: true
+        working-directory: ${{ env.TF_WORKING_DIR_production }}
 
       - name: Terraform Plan Status
         if: steps.plan.outcome == 'failure'
         run: exit 1
+        working-directory: ${{ env.TF_WORKING_DIR_production }}
 
       - name: Terraform Apply
         run: terraform apply -auto-approve
+        working-directory: ${{ env.TF_WORKING_DIR_production }}
 
       - name: Terraform Output
         run: terraform output # Correct any specific issues here
+        working-directory: ${{ env.TF_WORKING_DIR_production }}
 
       - name: Get kubeconfig from Azure for production cluster
         run: |
