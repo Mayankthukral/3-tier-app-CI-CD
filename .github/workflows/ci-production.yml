@@ -1,0 +1,141 @@
+name: 3-tier-app Production CI Workflow
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: write
+  id-token: write
+
+env:
+  NODE_VERSION: '14'
+  PYTHON_VERSION: '3.10'
+  TF_DIR_PRODUCTION: ${{ github.workspace }}/production
+  IMAGE_REGISTRY: 'registry.company.com/3tierapp'
+  IMAGE_TAG: ${{ github.run_number }}
+
+jobs:
+  prod-build-and-deploy:
+    name: Build & Deploy to Production
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install & Test Frontend
+        run: |
+          cd task-manager-frontend
+          echo "MONGODB_URL=${{ secrets.MONGODB_URL }}" > .env
+          npm ci
+          npm test
+
+      - name: Install & Test Backend
+        run: |
+          cd task-manager-backend
+          echo "MONGODB_URL=${{ secrets.MONGODB_URL }}" > .env
+          npm ci
+          npm test
+
+      - name: Run SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUBTOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.organization=${{ secrets.SONARORGANIZATION }}
+            -Dsonar.projectKey=${{ secrets.SONARPROJECT }}
+            -Dsonar.sources=task-manager-backend,task-manager-frontend
+
+      - name: Docker Registry Login
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.IMAGE_REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_TOKEN }}
+
+      - name: Build & Push Frontend Image
+        id: build_frontend
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: ${{ env.IMAGE_REGISTRY }}/frontend:${{ env.IMAGE_TAG }}
+          context: task-manager-frontend
+
+      - name: Build & Push Backend Image
+        id: build_backend
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: ${{ env.IMAGE_REGISTRY }}/backend:${{ env.IMAGE_TAG }}
+          context: task-manager-backend
+
+      - name: Capture Image Digests
+        run: |
+          echo "FRONTEND_DIGEST=${{ steps.build_frontend.outputs.digest }}" >> $GITHUB_ENV
+          echo "BACKEND_DIGEST=${{ steps.build_backend.outputs.digest }}" >> $GITHUB_ENV
+
+      - name: Setup Terraform CLI
+        uses: hashicorp/setup-terraform@v2
+        with:
+          cli_config_credentials_token: ${{ secrets.TFC_TOKEN_ID_productioncluster }}
+
+      - name: Terraform Init
+        working-directory: ${{ env.TF_DIR_PRODUCTION }}
+        run: terraform init
+
+      - name: Terraform Validate
+        working-directory: ${{ env.TF_DIR_PRODUCTION }}
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: ${{ env.TF_DIR_PRODUCTION }}
+        run: terraform plan
+        continue-on-error: true
+
+      - name: Terraform Apply
+        if: ${{ always() }}
+        working-directory: ${{ env.TF_DIR_PRODUCTION }}
+        run: terraform apply -auto-approve
+
+      - name: Azure CLI Login
+        run: |
+          az login --service-principal \
+            -u ${{ secrets.AZURE_CLIENT_ID }} \
+            -p ${{ secrets.AZURE_CLIENT_SECRET }} \
+            --tenant ${{ secrets.AZURE_TENANT_ID }}
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Get AKS Credentials for Production
+        run: az aks get-credentials \
+          --resource-group my_resource_group_production \
+          --name todoappcluster_production \
+          --overwrite-existing
+
+      - name: Deploy Kubernetes Manifests
+        run: |
+          cd kubernetes_manifests
+          kubectl set image deployment/frontend frontend=${{ env.IMAGE_REGISTRY }}/frontend@${{ env.FRONTEND_DIGEST }} -n productionnamespace
+          kubectl set image deployment/backend backend=${{ env.IMAGE_REGISTRY }}/backend@${{ env.BACKEND_DIGEST }} -n productionnamespace
+
+      - name: Wait for Ingress Controller
+        run: |
+          kubectl rollout status deployment/nginx-ingress-controller -n productionnamespace --timeout=3m
+
+      - name: Display Production Endpoints
+        run: |
+          kubectl get ingress,svc -n productionnamespace
