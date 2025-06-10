@@ -1,0 +1,97 @@
+name: 3-tier-app Testing CI
+
+on:
+  push:
+    branches:
+      - testing
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      TF_WORKING_DIR: ${{ github.workspace }}/testing
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js (v14)
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Setup Python (3.10)
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+
+      - name: Install and test Frontend
+        run: |
+          cd task-manager-frontend
+          echo "MONGODB_URL=${{ secrets.MONGODB_URL }}" > .env
+          npm install
+          npm test
+
+      - name: Install and test Backend
+        run: |
+          cd task-manager-backend
+          echo "MONGODB_URL=${{ secrets.MONGODB_URL }}" > .env
+          npm install
+          npm test
+
+      - name: SonarCloud analysis
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.CUSTOM_GITHUBTOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.organization=${{ secrets.SONARORGANIZATION }}
+            -Dsonar.projectKey=${{ secrets.SONARPROJECT }}
+            -Dsonar.sources=task-manager-backend,task-manager-frontend
+
+      - name: Build & push Docker images
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: |
+            mayank7833/frontend:testing
+            mayank7833/backend:testing
+          context: task-manager-frontend
+      - uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: mayank7833/backend:testing
+          context: task-manager-backend
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          cli_config_credentials_token: ${{ secrets.TFC_TOKEN_ID_testingcluster }}
+
+      - name: Terraform Init & Apply
+        run: |
+          cd $TF_WORKING_DIR
+          terraform init
+          terraform validate
+          terraform apply -auto-approve
+
+      - name: Azure Login & AKS Credentials
+        run: |
+          az login --service-principal \
+            -u ${{ secrets.AZURE_CLIENT_ID }} \
+            -p ${{ secrets.AZURE_CLIENT_SECRET }} \
+            --tenant ${{ secrets.AZURE_TENANT_ID }}
+          az aks get-credentials \
+            --resource-group my_resource_group_testing \
+            --name todoappcluster_testing \
+            --overwrite-existing
+
+      - name: Deploy to AKS (testingnamespace)
+        run: |
+          cd kubernetes_manifests
+          kubectl apply -n testingnamespace -f .
